@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "omniforge"
+version = "0.2.0"
+description = "Verifiable Algorithm Foundry seed: contracts + artifact bundling + CI"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Dustin", email = "example@example.com"}]
+dependencies = [
+  "jsonschema>=4.22.0",
+]
+
+[project.scripts]
+omniforge = "omniforge.cli:main"
+
+[tool.setuptools]
+packages = ["omniforge", "omniforge.lanes", "omniforge.eval", "omniforge.artifacts"]

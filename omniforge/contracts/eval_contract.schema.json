@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EvalContract",
+  "type": "object",
+  "required": [
+    "version",
+    "lane",
+    "benchmarks",
+    "resources",
+    "determinism",
+    "evidence_requirements"
+  ],
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "lane": {
+      "type": "string",
+      "enum": [
+        "sat",
+        "correctness"
+      ]
+    },
+    "benchmarks": {
+      "type": "object",
+      "required": [
+        "suite_id",
+        "cases"
+      ],
+      "properties": {
+        "suite_id": {
+          "type": "string"
+        },
+        "cases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "required": [
+        "cpu_seconds",
+        "memory_mb",
+        "wall_seconds"
+      ],
+      "properties": {
+        "cpu_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "memory_mb": {
+          "type": "integer",
+          "minimum": 64
+        },
+        "wall_seconds": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "determinism": {
+      "type": "object",
+      "required": [
+        "seed",
+        "threads",
+        "env_locked"
+      ],
+      "properties": {
+        "seed": {
+          "type": "integer"
+        },
+        "threads": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "env_locked": {
+          "type": "boolean"
+        }
+      }
+    },
+    "evidence_requirements": {
+      "type": "object",
+      "required": [
+        "require_artifacts",
+        "require_hash_manifest"
+      ],
+      "properties": {
+        "require_artifacts": {
+          "type": "boolean"
+        },
+        "require_hash_manifest": {
+          "type": "boolean"
+        },
+        "unsat_requires_proof": {
+          "type": "boolean",
+          "default": true
+        },
+        "proof_checker": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

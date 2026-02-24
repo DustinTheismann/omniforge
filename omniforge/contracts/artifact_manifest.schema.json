@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ArtifactManifest",
+  "type": "object",
+  "required": [
+    "manifest_version",
+    "run_id",
+    "timestamp_utc",
+    "lane",
+    "inputs",
+    "candidate",
+    "outputs",
+    "hashes"
+  ],
+  "properties": {
+    "manifest_version": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "timestamp_utc": {
+      "type": "string"
+    },
+    "lane": {
+      "type": "string"
+    },
+    "inputs": {
+      "type": "object",
+      "required": [
+        "bench_suite",
+        "case_id"
+      ],
+      "properties": {
+        "bench_suite": {
+          "type": "string"
+        },
+        "case_id": {
+          "type": "string"
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "required": [
+        "executor",
+        "genome",
+        "commandline"
+      ],
+      "properties": {
+        "executor": {
+          "type": "string"
+        },
+        "genome": {
+          "type": "object"
+        },
+        "commandline": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "required": [
+        "result",
+        "stdout_path",
+        "stderr_path"
+      ],
+      "properties": {
+        "result": {
+          "type": "string",
+          "enum": [
+            "SAT",
+            "UNSAT",
+            "UNKNOWN",
+            "ERROR",
+            "TIMEOUT"
+          ]
+        },
+        "stdout_path": {
+          "type": "string"
+        },
+        "stderr_path": {
+          "type": "string"
+        },
+        "proof_path": {
+          "type": "string"
+        }
+      }
+    },
+    "hashes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "description": "sha256 hex"
+      }
+    }
+  }
+}
