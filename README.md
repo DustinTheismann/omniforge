@@ -1,3 +1,4 @@
+[![ci](https://github.com/DustinTheismann/omniforge/actions/workflows/ci.yml/badge.svg)](https://github.com/DustinTheismann/omniforge/actions/workflows/ci.yml)
 # OmniForge / ProofForge — Verifiable Algorithm Foundry (v0.2-seed)
 
 This repository is a minimal, publishable seed for a **lane-based algorithm foundry**.
