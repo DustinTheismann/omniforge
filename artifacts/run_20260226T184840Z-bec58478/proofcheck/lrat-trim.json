@@ -1,0 +1,7 @@
+{
+  "checker": "lrat-trim",
+  "ok": false,
+  "returncode": 20,
+  "stderr": "",
+  "stdout": "c LRAT-TRIM Version 0.2.0 trims LRAT proofs\nc Copyright (c) 2023 Armin Biere University of Freiburg\nc reading CNF and LRAT files\nc backward checking trimmed clauses after trimming proof\nc reading CNF from '/workspaces/omniforge/artifacts/run_20260226T184840Z-bec58478/input.cnf'\nc found 'p cnf 1 2' header\nc parsed CNF with 2 added clauses\nc parsing original CNF took 0.00 seconds and needed 45 MB memory\nc reading proof from '/workspaces/omniforge/artifacts/run_20260226T184840Z-bec58478/proofs/proof.lrat'\nc parsed original proof with 1 added and 0 deleted clauses\nc parsing original proof took 0.00 seconds and needed 45 MB memory\nc trimmed 2 original clauses in CNF to 2 clauses 100%\nc trimmed 1 added clauses in original proof to 1 clauses 100%\nc trimming proof took 0.00 seconds\nc backward checking proof took 0.00 seconds\ns VERIFIED\nc checked 1 clauses 1043 per second\nc resolved 3 clauses 3.00 per checked clause\nc assigned 1 literals 1.00 per checked clause\nc maximum memory usage of 45 MB\nc total time of 0.00 seconds\n"
+}

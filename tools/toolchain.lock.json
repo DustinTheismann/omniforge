@@ -1,0 +1,5 @@
+{
+  "cadical":   {"repo":"https://github.com/arminbiere/cadical","ref":"rel-3.0.0"},
+  "drat_trim": {"repo":"https://github.com/marijnheule/drat-trim","ref":"v05.22.2023"},
+  "lrat_trim": {"repo":"https://github.com/arminbiere/lrat-trim","ref":"rel-0.2.0"}
+}

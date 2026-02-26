@@ -14,11 +14,23 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: System deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+
+      - name: Install SAT toolchain
+        run: |
+          bash scripts/tools/install_sat_toolchain.sh
+
       - name: Install
-        run: pip install -e .
+        run: |
+          pip install -e .
 
       - name: Validate contracts
-        run: make validate-contracts
+        run: |
+          make validate-contracts
 
-      - name: Demo run bundle
-        run: make demo
+      - name: Demo (two-checker UNSAT)
+        run: |
+          make demo
