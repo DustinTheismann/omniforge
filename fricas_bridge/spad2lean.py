@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""FriCAS SPAD category → Lean 4 typeclass transpiler."""
+"""FriCAS SPAD category → Lean 4 typeclass transpiler.
+
+Processes multiple SPAD files, deduplicates by long_name (first file wins),
+emits one Lean 4 file with class declarations, typed fields (% → α,
+Union(%,"failed") → Option α, Join(A,B) → extends A α, B α), and compiled
+axiom propositions.
+"""
 
 import re
 import sys
@@ -14,50 +20,69 @@ from typing import Optional
 @dataclass
 class Operation:
     name: str
-    domain: list  # argument types (% = carrier)
-    codomain: str # return type
+    domain: list       # argument types (% = carrier); [] for constants/nullary
+    codomain: str      # return type
+    doc: str = ''      # per-field docstring
 
 @dataclass
 class Axiom:
-    raw: str          # raw equation string from source
-    lean: Optional[str] = None  # compiled Lean proposition
+    raw: str           # raw equation string from source
+    lean: Optional[str] = None
 
 @dataclass
 class Category:
     abbrev: str
     long_name: str
-    params: list      # [(name, kind), ...]
-    parents: list     # parent category expressions
+    params: list       # [(name, kind), ...]
+    parents: list      # parent category expressions (raw SPAD strings)
     ops: list
     axioms: list
+    source_file: str = ''
 
 # ---------------------------------------------------------------------------
 # SPAD operator → Lean field name
 # ---------------------------------------------------------------------------
 
 OP_MAP = {
-    "+":   "add",
-    "*":   "mul",
-    "/":   "div",
-    "^":   "pow",
-    "=":   "eq",
-    "~=":  "ne",
-    "<":   "lt",
-    ">":   "gt",
-    "<=":  "le",
-    ">=":  "ge",
-    "quo": "quot",
-    "rem": "rem_op",
-    "0":   "zero",
-    "1":   "one",
+    "+":    "add",
+    "-":    "sub",     # binary; arity=1 handled below
+    "*":    "mul",
+    "/":    "div",
+    "^":    "pow",
+    "=":    "eq",
+    "~=":   "ne",
+    "<":    "lt",
+    ">":    "gt",
+    "<=":   "le",
+    ">=":   "ge",
+    "quo":  "quot",
+    "rem":  "rem_op",
+    # Constant-valued operations
+    "0":    "zero",
+    "1":    "one",
+    # Logic / lattice specials
+    "T":    "top",
+    "_/_\\":  "meet",
+    "_\\_/":  "join",
+    "__|__":  "bot",
+    "_~":   "lnot",
+    "true":  "true_val",
+    "false": "false_val",
 }
 
 def op_to_field(op: str, arity: int) -> str:
+    """Map a SPAD operator name to a valid Lean field identifier."""
     if op == "-" and arity == 1:
         return "neg"
-    if op == "-":
-        return "sub"
-    return OP_MAP.get(op, re.sub(r'[^a-zA-Z0-9_]', '_', op.strip('"')))
+    mapped = OP_MAP.get(op)
+    if mapped:
+        return mapped
+    # Sanitize: keep alphanumerics and underscores
+    clean = re.sub(r'[^a-zA-Z0-9_]', '_', op.strip('"'))
+    # Lean doesn't allow leading digits
+    if clean and clean[0].isdigit():
+        clean = "val_" + clean
+    return clean or "unknown"
 
 
 # ---------------------------------------------------------------------------
@@ -66,18 +91,19 @@ def op_to_field(op: str, arity: int) -> str:
 
 def translate_type(t: str, carrier: str = "α") -> str:
     t = t.strip()
-    # % is not a word char so \b doesn't work — use literal replacement
+    # % is not a word char — use literal replacement (not regex \b)
     t = t.replace('%', carrier)
-    # Union(α,"failed") → Option α  (must run after % replacement)
+    # Union(α,"failed") → Option α
     t = re.sub(
         r'Union\s*\(\s*' + re.escape(carrier) + r'\s*,\s*"failed"\s*\)',
         f'Option {carrier}', t
     )
     t = re.sub(r'Union\s*\([^)]+,\s*"failed"\s*\)', 'Option _', t)
-    # Record(...)  → simplify to a named struct placeholder
-    t = re.sub(r'Record\([^)]*\)', 'Record_', t)
-    t = t.replace("List(" + carrier + ")", f"List {carrier}")
-    t = t.replace("List %", f"List {carrier}")
+    # Record(...) → opaque placeholder
+    t = re.sub(r'Record\s*\([^)]*\)', 'Record_', t)
+    # List(%) → List α
+    t = re.sub(r'List\s*\(\s*' + re.escape(carrier) + r'\s*\)', f'List {carrier}', t)
+    # Common integer/boolean types
     t = t.replace("Boolean", "Bool")
     t = t.replace("NonNegativeInteger", "Nat")
     t = t.replace("PositiveInteger", "PosNat")
@@ -87,60 +113,53 @@ def translate_type(t: str, carrier: str = "α") -> str:
 
 
 # ---------------------------------------------------------------------------
-# Parse parent list from RHS of a category definition
+# Comma-splitting at paren depth 0
 # ---------------------------------------------------------------------------
 
-def _depth_split_commas(s: str) -> list:
+def _depth_split(s: str) -> list:
     """Split s on commas at parenthesis depth 0."""
-    parts = []
-    current = []
-    depth = 0
+    parts, cur, depth = [], [], 0
     for c in s:
         if c == '(':
-            depth += 1
-            current.append(c)
+            depth += 1; cur.append(c)
         elif c == ')':
-            depth -= 1
-            current.append(c)
+            depth -= 1; cur.append(c)
         elif c == ',' and depth == 0:
-            parts.append(''.join(current).strip())
-            current = []
+            parts.append(''.join(cur).strip()); cur = []
         else:
-            current.append(c)
-    if current:
-        parts.append(''.join(current).strip())
+            cur.append(c)
+    if cur:
+        parts.append(''.join(cur).strip())
     return parts
 
-def _find_bare_with(s: str) -> int:
-    """Index of a bare 'with' keyword at paren depth 0, or -1."""
+
+# ---------------------------------------------------------------------------
+# Parse parent list from category definition RHS
+# ---------------------------------------------------------------------------
+
+def _bare_with_pos(s: str) -> int:
+    """Index of a bare 'with' keyword at depth 0, or -1."""
     depth = 0
-    i = 0
-    while i < len(s):
-        c = s[i]
+    for i, c in enumerate(s):
         if c == '(':
             depth += 1
         elif c == ')':
             depth -= 1
-        elif depth == 0:
-            m = re.match(r'\bwith\b', s[i:])
-            if m and (i == 0 or not s[i-1].isalnum()):
+        elif depth == 0 and s[i:i+5] == ' with':
+            after = s[i+5:i+6]
+            if not (after.isalnum() or after == '_'):
                 return i
-        i += 1
     return -1
 
 def parse_parents(rhs: str) -> list:
     rhs = rhs.strip()
-    # Strip 'with ...' block
-    wp = _find_bare_with(rhs)
+    wp = _bare_with_pos(rhs)
     if wp >= 0:
         rhs = rhs[:wp].strip()
-    # Strip trailing 'add'
     rhs = re.sub(r'\s+add\s*$', '', rhs).strip()
 
     if rhs.startswith("Join("):
-        # Extract inner args
-        depth = 0
-        start = rhs.index('(') + 1
+        depth, start = 0, rhs.index('(') + 1
         end = start
         while end < len(rhs):
             if rhs[end] == '(':
@@ -150,13 +169,12 @@ def parse_parents(rhs: str) -> list:
                     break
                 depth -= 1
             end += 1
-        inner = rhs[start:end]
-        parents = []
-        for arg in _depth_split_commas(inner):
+        parts = []
+        for arg in _depth_split(rhs[start:end]):
             arg = arg.strip()
             if arg and arg[0].isupper():
-                parents.append(arg)
-        return parents
+                parts.append(arg)
+        return parts
     elif rhs and rhs[0].isupper():
         return [rhs]
     return []
@@ -164,47 +182,74 @@ def parse_parents(rhs: str) -> list:
 
 # ---------------------------------------------------------------------------
 # Parse operations from a 'with' block
+# (handles constants, digit names, per-field docstrings)
 # ---------------------------------------------------------------------------
+
+# Matches: "op" or word or digit-start  :  constant  ->  Type
+_CONST_RE = re.compile(
+    r'(?:"(?P<qn>[^"\n]+)"|(?P<dn>\d[\w]*)|(?P<wn>[a-zA-Z_?!][a-zA-Z0-9_?!]*))'
+    r'\s*:\s*constant\s*->\s*(?P<cod>[^\n]+)',
+    re.MULTILINE
+)
+
+# Matches:  "op" or word  :  Domain  ->  Codomain
+_OP_RE = re.compile(
+    r'(?:"(?P<qn>[^"\n]+)"|(?P<wn>[a-zA-Z_?!][a-zA-Z0-9_?!]*))'
+    r'\s*:\s*(?P<dom>(?:\([^)]*\)|[^-\n])*?)\s*->\s*(?P<cod>[^\n]+)',
+    re.MULTILINE
+)
+
+def _strip_inline_doc(s: str) -> tuple:
+    """Split 'value  ++ doc comment' into (value, doc)."""
+    idx = s.find('++')
+    if idx >= 0:
+        return s[:idx].strip(), s[idx+2:].strip()
+    return s.strip(), ''
 
 def parse_operations(with_block: str) -> list:
     ops = []
-    # Match:  "op" : (A,B) -> C   or   op : A -> C
-    pattern = re.compile(
-        r'"([^"]+)"\s*:\s*(.*?)\s*->\s*([^\n]+)'
-        r'|'
-        r'\b([a-zA-Z_?!][a-zA-Z0-9_?!]*)\s*:\s*((?:\([^)]*\)|[^-\n])+?)\s*->\s*([^\n]+)',
-        re.MULTILINE
-    )
-    seen = set()
-    for m in pattern.finditer(with_block):
-        if m.group(1) is not None:
-            raw_name = m.group(1)
-            raw_domain = m.group(2).strip()
-            raw_cod = m.group(3).strip()
-        else:
-            raw_name = m.group(4)
-            raw_domain = m.group(5).strip()
-            raw_cod = m.group(6).strip()
+    seen_lean: set = set()
 
-        # Skip doc comment fragments
-        if not raw_name or raw_name.startswith('++'):
+    # Pass 1 — constants (nullary, including digit names like 0, 1)
+    for m in _CONST_RE.finditer(with_block):
+        name = m.group('qn') or m.group('dn') or m.group('wn') or ''
+        name = name.strip()
+        cod_raw = m.group('cod') or ''
+        cod, doc = _strip_inline_doc(cod_raw)
+        if not name:
             continue
-        # Deduplicate (FriCAS may list overloaded ops; we keep first)
-        key = (raw_name, raw_domain)
-        if key in seen:
-            continue
-        seen.add(key)
+        lean = op_to_field(name, 0)
+        if lean not in seen_lean:
+            seen_lean.add(lean)
+            ops.append(Operation(name=name, domain=[], codomain=cod, doc=doc))
 
-        if raw_domain.startswith('(') and raw_domain.endswith(')'):
-            dom = [t.strip() for t in _depth_split_commas(raw_domain[1:-1])]
-            if dom == ['']:
-                dom = []
-        elif raw_domain in ('()', ''):
+    # Pass 2 — regular ops (skip 'constant' domain)
+    for m in _OP_RE.finditer(with_block):
+        name = (m.group('qn') or m.group('wn') or '').strip()
+        dom_str = (m.group('dom') or '').strip()
+        cod_raw = (m.group('cod') or '').strip()
+
+        if not name or name.startswith('++'):
+            continue
+        if dom_str == 'constant':
+            continue  # handled in pass 1
+
+        cod, doc = _strip_inline_doc(cod_raw)
+
+        # Parse domain
+        if dom_str.startswith('(') and dom_str.endswith(')'):
+            dom = [t.strip() for t in _depth_split(dom_str[1:-1])]
+            dom = [d for d in dom if d]
+        elif dom_str in ('()', ''):
             dom = []
         else:
-            dom = [raw_domain]
+            dom = [dom_str]
 
-        ops.append(Operation(name=raw_name, domain=dom, codomain=raw_cod.strip()))
+        lean = op_to_field(name, len(dom))
+        if lean not in seen_lean:
+            seen_lean.add(lean)
+            ops.append(Operation(name=name, domain=dom, codomain=cod, doc=doc))
+
     return ops
 
 
@@ -218,10 +263,7 @@ def parse_axioms(doc_block: str) -> list:
     for line in doc_block.split('\n'):
         stripped = line.strip()
         if not stripped.startswith('++'):
-            if in_axioms:
-                # If blank line, keep going; otherwise stop
-                if stripped == '':
-                    continue
+            if in_axioms and stripped:
                 in_axioms = False
             continue
         content = stripped[2:].strip()
@@ -230,10 +272,20 @@ def parse_axioms(doc_block: str) -> list:
             continue
         if in_axioms:
             spads = re.findall(r'\\spad\{([^}]+)\}', content)
-            for s in spads:
-                formal = re.split(r'\\tab\{', s)[0].strip()
-                if formal:
-                    raw_eqs.append(formal)
+            if spads:
+                for s in spads:
+                    formal = re.split(r'\\tab\{', s)[0].strip()
+                    if formal:
+                        raw_eqs.append(formal)
+            else:
+                # Bare equation (no \spad{} wrapper), e.g. from naalgc.spad
+                eq = content.strip()
+                # Strip leftIdentity(...) wrapper — just take the human-readable part
+                bare = re.search(r'\)\s+(.+)$', eq)
+                if bare:
+                    eq = bare.group(1).strip()
+                if eq and '=' in eq and not eq.startswith('++'):
+                    raw_eqs.append(eq)
     return raw_eqs
 
 
@@ -248,16 +300,12 @@ class AxiomCompiler:
 
     def compile(self, eq: str) -> Optional[str]:
         eq = eq.strip()
-        # Reject disjunctions (a=0 or b=0)
         if ' or ' in eq.lower():
             return None
-        # Reject partial-subtraction sentinels
         if '"failed"' in eq or 'subtractIfCan' in eq:
             return None
-        # Reject implications
         if '=>' in eq:
             return None
-        # Must contain =
         if '=' not in eq:
             return None
 
@@ -283,7 +331,7 @@ class AxiomCompiler:
         tokens = self._tokenize(s)
         if not tokens:
             raise ValueError("empty expression")
-        expr, vars_, pos = self._parse_add(tokens, 0)
+        expr, vars_, _ = self._parse_add(tokens, 0)
         return expr, vars_
 
     def _tokenize(self, s: str) -> list:
@@ -298,7 +346,8 @@ class AxiomCompiler:
             op = tokens[pos]; pos += 1
             right, rv, pos = self._parse_mul(tokens, pos)
             vars_ |= rv
-            left = f"(add {left} {right})" if op == '+' else f"(sub {left} {right})"
+            lean_op = "add" if op == '+' else "sub"
+            left = f"({lean_op} {left} {right})"
         return left, vars_, pos
 
     def _parse_mul(self, tokens, pos):
@@ -340,34 +389,28 @@ class AxiomCompiler:
 
         name = tok; pos += 1
 
-        # Function call: name(args)
         if pos < len(tokens) and tokens[pos] == '(':
-            pos += 1  # consume '('
-            args = []; avars: set = set()
+            pos += 1
+            args, avars = [], set()
             while pos < len(tokens) and tokens[pos] != ')':
                 if tokens[pos] == ',':
                     pos += 1; continue
-                arg, av, pos = self._parse_add(tokens, pos)
-                args.append(arg); avars |= av
+                a, av, pos = self._parse_add(tokens, pos)
+                args.append(a); avars |= av
             if pos < len(tokens):
-                pos += 1  # consume ')'
-            lean_name = self._map_func(name)
+                pos += 1
+            lean_name = {'inv': 'inv', 'differentiate': 'differentiate',
+                         'not': 'Not', 'lookup': 'lookup', 'index': 'index'
+                         }.get(name, name)
             result = f"({lean_name} {' '.join(args)})" if args else lean_name
             return result, avars, pos
 
-        # Single identifier
+        # Only single-letter lowercase names are universally-quantified variables.
+        # Multi-char lowercase names (top, bot, zero, one, inv, …) are field
+        # references to in-scope class constants — not free variables.
         if re.match(r'^[a-z]$', name):
             return name, {name}, pos
-        if name[0].islower():
-            return name, {name}, pos
         return name, set(), pos
-
-    def _map_func(self, name: str) -> str:
-        return {
-            'inv': 'inv', 'differentiate': 'differentiate',
-            'not': 'Not', 'zero': 'zero', 'one': 'one',
-            'lookup': 'lookup', 'index': 'index', 'sup': 'sup',
-        }.get(name, name)
 
 
 # ---------------------------------------------------------------------------
@@ -380,31 +423,38 @@ class LeanGenerator:
         self.cat_by_name = {c.long_name: c for c in categories}
 
     def _translate_parent(self, p: str) -> Optional[str]:
+        """Translate a SPAD parent expression to a Lean extends clause with α applied."""
         p = p.strip()
         if not p or not p[0].isupper():
             return None
-        # Parametric parent: Name(arg) or Name(arg1, arg2, ...)
+
+        # Parametric parent: Name(arg1, arg2, ...)
         m = re.match(r'([A-Za-z][A-Za-z0-9]*)\s*\((.+)\)$', p, re.DOTALL)
         if m:
             base = m.group(1)
             raw_args = m.group(2).strip()
-            # Split args at depth-0 commas
-            args = _depth_split_commas(raw_args)
+            args = _depth_split(raw_args)
             lean_args = []
             for arg in args:
                 arg = arg.strip()
-                if arg == '%' or re.search(r':\s*Rng|:\s*Ring', arg):
+                if arg == '%' or re.search(r':\s*(?:Rng|Ring|SemiRng)\b', arg):
                     lean_args.append('α')
                 else:
                     lean_args.append(translate_type(arg))
+            lean_args.append('α')          # carrier type always last
             return f"{base} {' '.join(lean_args)}"
-        return p
+
+        # Non-parametric bare name → apply carrier α
+        return f"{p} α"
 
     def generate_class(self, cat: Category) -> str:
         lines = []
+
+        # extends list — all parents get α applied
         extends = [self._translate_parent(p) for p in cat.parents]
         extends = [e for e in extends if e]
 
+        # Class header
         if cat.params:
             pstr = " ".join(f"({n} : {k})" for n, k in cat.params)
             header = f"class {cat.long_name} {pstr} (α : Type*)"
@@ -414,9 +464,9 @@ class LeanGenerator:
         ext = (" extends " + ", ".join(extends)) if extends else ""
         lines.append(f"{header}{ext} where")
 
-        # Operations (deduplicate by lean field name — keep first signature)
+        # Operations (deduplicated by lean field name; constants emitted as values)
         seen_fields: set = set()
-        emitted_ops = 0
+        emitted = 0
         for op in cat.ops:
             lean_name = op_to_field(op.name, len(op.domain))
             if lean_name in seen_fields:
@@ -424,17 +474,21 @@ class LeanGenerator:
             seen_fields.add(lean_name)
             dom = [translate_type(t) for t in op.domain]
             cod = translate_type(op.codomain)
-            sig = " → ".join(dom + [cod]) if dom else cod
-            lines.append(f"  {lean_name} : {sig}")
-            emitted_ops += 1
+            # Nullary: emit as a value field, not a function
+            if dom:
+                sig = " → ".join(dom + [cod])
+            else:
+                sig = cod
+            doc_suffix = f"  -- {op.doc}" if op.doc else ""
+            lines.append(f"  {lean_name} : {sig}{doc_suffix}")
+            emitted += 1
 
-        if emitted_ops == 0:
-            lines.append("  -- (no new operations)")
+        if emitted == 0:
+            lines.append("  -- (no new operations beyond inherited)")
 
-        # Axioms
+        # Axioms — compiled to Lean propositions where possible
         compiler = AxiomCompiler(cat, self.cat_by_name)
-        compiled = []
-        informal = []
+        compiled, informal = [], []
         for ax in cat.axioms:
             lp = compiler.compile(ax.raw)
             if lp:
@@ -455,12 +509,13 @@ class LeanGenerator:
         parts = [
             "-- Auto-generated by spad2lean.py",
             "-- FriCAS category hierarchy → Lean 4 typeclasses",
-            "-- Source: fricas/fricas src/algebra/catdef.spad",
+            "-- Sources: catdef.spad · naalgc.spad · logic.spad",
             "",
         ]
         for cat in self.categories:
+            src = f"  [{cat.source_file}]" if cat.source_file else ""
             parts.append(f"-- {'─'*68}")
-            parts.append(f"-- {cat.long_name}  [{cat.abbrev}]")
+            parts.append(f"-- {cat.long_name}  [{cat.abbrev}]{src}")
             parts.append(f"-- {'─'*68}")
             parts.append(self.generate_class(cat))
             parts.append("")
@@ -471,54 +526,46 @@ class LeanGenerator:
 # SPAD file parser
 # ---------------------------------------------------------------------------
 
-def parse_spad_file(path: Path) -> list:
-    text = path.read_text()
-
-    # Strip -- comments (but preserve ++ doc lines)
+def _strip_dash_comments(text: str) -> str:
+    """Strip -- comments from non-doc lines, preserving ++ doc lines."""
     cleaned = []
     for line in text.split('\n'):
         s = line.strip()
         if s.startswith('++'):
             cleaned.append(line)
             continue
-        # Remove -- from non-doc lines
-        out = []
-        in_str = False
-        i = 0
+        out, in_str, i = [], False, 0
         while i < len(line):
             c = line[i]
             if c == '"':
-                in_str = not in_str
-                out.append(c)
+                in_str = not in_str; out.append(c)
             elif not in_str and line[i:i+2] == '--':
                 break
             else:
                 out.append(c)
             i += 1
         cleaned.append(''.join(out))
-    text = '\n'.join(cleaned)
+    return '\n'.join(cleaned)
 
+def parse_spad_file(path: Path) -> list:
+    text = _strip_dash_comments(path.read_text())
     categories = []
     abbrev_re = re.compile(r'\)abbrev\s+category\s+(\w+)\s+(\w+)', re.MULTILINE)
     matches = list(abbrev_re.finditer(text))
 
     for idx, m in enumerate(matches):
-        abbrev = m.group(1)
-        long_name = m.group(2)
+        abbrev, long_name = m.group(1), m.group(2)
         start = m.start()
         end = matches[idx+1].start() if idx+1 < len(matches) else len(text)
         block = text[start:end]
 
-        # Split into doc and sig blocks
-        doc_lines = []
-        sig_lines = []
-        past_abbrev = False
+        # Split block into doc-comment section and signature section
+        doc_lines, sig_lines, past_abbrev = [], [], False
         for line in block.split('\n'):
             if not past_abbrev:
-                past_abbrev = True
-                continue
+                past_abbrev = True; continue
             s = line.strip()
-            if s.startswith('++') or (not sig_lines and s == ''):
+            if not sig_lines and (s.startswith('++') or s == ''):
                 if s.startswith('++'):
                     doc_lines.append(s)
             else:
@@ -538,12 +585,10 @@ def parse_spad_file(path: Path) -> list:
         axioms = [Axiom(raw=eq) for eq in raw_axioms]
 
         categories.append(Category(
-            abbrev=abbrev,
-            long_name=long_name,
-            params=params,
-            parents=parents,
-            ops=ops,
-            axioms=axioms,
+            abbrev=abbrev, long_name=long_name,
+            params=params, parents=parents,
+            ops=ops, axioms=axioms,
+            source_file=path.name,
         ))
 
     return categories
@@ -552,8 +597,7 @@ def parse_spad_file(path: Path) -> list:
 def _parse_signature(sig_block: str, long_name: str) -> tuple:
     pat = re.compile(
         r'\b' + re.escape(long_name) + r'\s*'
-        r'(?:\(([^)]*)\))?\s*'
-        r':\s*Category\s*==\s*(.*)',
+        r'(?:\(([^)]*)\))?\s*:\s*Category\s*==\s*(.*)',
         re.DOTALL
     )
     m = pat.search(sig_block)
@@ -575,6 +619,26 @@ def _parse_signature(sig_block: str, long_name: str) -> tuple:
 
 
 # ---------------------------------------------------------------------------
+# Multi-file entry point
+# ---------------------------------------------------------------------------
+
+def parse_spad_files(paths: list) -> list:
+    """Parse multiple SPAD files; first definition of a category wins."""
+    seen: set = set()
+    all_cats = []
+    for path in paths:
+        p = Path(path)
+        if not p.exists():
+            print(f"Warning: {p} not found — skipping", file=sys.stderr)
+            continue
+        for cat in parse_spad_file(p):
+            if cat.long_name not in seen:
+                seen.add(cat.long_name)
+                all_cats.append(cat)
+    return all_cats
+
+
+# ---------------------------------------------------------------------------
 # Statistics
 # ---------------------------------------------------------------------------
 
@@ -585,14 +649,29 @@ def report_stats(categories: list) -> str:
     no_axioms = sorted(c.long_name for c in categories if not c.axioms)
     density = 100 * cats_with_axioms / len(categories) if categories else 0
 
+    # Count constants parsed
+    total_constants = sum(
+        1 for c in categories for op in c.ops if op.domain == []
+    )
+
+    by_file: dict = {}
+    for c in categories:
+        by_file.setdefault(c.source_file, 0)
+        by_file[c.source_file] += 1
+
     lines = [
         f"Categories parsed:          {len(categories)}",
+    ]
+    for fname, count in sorted(by_file.items()):
+        lines.append(f"  {fname or '(unknown)':<30} {count}")
+    lines += [
         f"Operations extracted:       {total_ops}",
+        f"  of which constants/nullary: {total_constants}",
         f"Axiom equations found:      {total_axioms}",
         f"Categories with axioms:     {cats_with_axioms} / {len(categories)} "
         f"({density:.1f}% formalization density)",
         "",
-        f"Implicit-contract gap — {len(no_axioms)} categories declare ops but state no axioms:",
+        f"Implicit-contract gap — {len(no_axioms)} categories state no axioms:",
     ]
     for name in no_axioms:
         lines.append(f"  - {name}")
@@ -603,21 +682,24 @@ def report_stats(categories: list) -> str:
 # Entry point
 # ---------------------------------------------------------------------------
 
+DATA_DIR = Path(__file__).parent / "data"
+DEFAULT_FILES = [
+    DATA_DIR / "catdef.spad",
+    DATA_DIR / "naalgc.spad",
+    DATA_DIR / "logic.spad",
+]
+
 def main():
     import argparse
     ap = argparse.ArgumentParser(description="Transpile FriCAS SPAD categories to Lean 4")
-    ap.add_argument("spad_file", nargs='?',
-                    default=str(Path(__file__).parent / "data" / "catdef.spad"))
+    ap.add_argument("spad_files", nargs='*',
+                    default=[str(f) for f in DEFAULT_FILES],
+                    help="SPAD source files (default: catdef.spad naalgc.spad logic.spad)")
     ap.add_argument("--output", "-o",
                     default=str(Path(__file__).parent / "output" / "FriCAS_Algebra.lean"))
     args = ap.parse_args()
 
-    spad_path = Path(args.spad_file)
-    if not spad_path.exists():
-        print(f"Error: {spad_path} not found", file=sys.stderr)
-        sys.exit(1)
-
-    categories = parse_spad_file(spad_path)
+    categories = parse_spad_files(args.spad_files)
     print(report_stats(categories))
     print()
 

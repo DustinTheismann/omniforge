@@ -1,0 +1,143 @@
+)abbrev category MAGMA Magma
+++ Description:
+++ Magma is the class of all multiplicative magmas, i.e. sets with
+++ a binary operation.
+Magma() : Category == SetCategory with
+    "*": (%,%) -> %
+      ++ x*y is the product of x and y.
+    rightPower : (%, PositiveInteger) -> %
+      ++ rightPower(x,n) is the n-th right power of x.
+    leftPower : (%, PositiveInteger) -> %
+      ++ leftPower(x,n) is the n-th left power of x.
+    "^": (%,PositiveInteger) -> %
+      ++ x^n is the n-th power of x.
+
+)abbrev category MAGMAWU MagmaWithUnit
+++ Description:
+++ MagmaWithUnit is the class of multiplicative magmas with unit,
+++ i.e. sets with a binary operation and a unit element.
+++
+++ Axioms:
+++   \spad{leftIdentity("*":(%,%)->%,1)}\tab{30}\spad{1*x=x}
+++   \spad{rightIdentity("*":(%,%)->%,1)}\tab{30}\spad{x*1=x}
+MagmaWithUnit() : Category == Magma with
+    1 : constant -> %
+      ++ 1 is the multiplicative identity element.
+    sample : constant -> %
+      ++ sample yields a value of type %
+    one? : % -> Boolean
+      ++ one?(x) tests if x is equal to 1.
+    rightPower : (%, NonNegativeInteger) -> %
+      ++ rightPower(x,n) is the n-th right power, with rightPower(x,0)=1.
+    leftPower : (%, NonNegativeInteger) -> %
+      ++ leftPower(x,n) is the n-th left power, with leftPower(x,0)=1.
+    "^": (%,NonNegativeInteger) -> %
+      ++ x^n is the n-th power, with x^0=1.
+    recip : % -> Union(%,"failed")
+      ++ recip(x) returns the two-sided inverse of x if it exists.
+    leftRecip : % -> Union(%,"failed")
+      ++ leftRecip(x) returns a left inverse of x if it exists.
+    rightRecip : % -> Union(%,"failed")
+      ++ rightRecip(x) returns a right inverse of x if it exists.
+
+)abbrev category NASRNG NonAssociativeSemiRng
+++ Description:
+++ The category of semirings, not necessarily associative, not necessarily
+++ commutative, and not necessarily with a 1.
+NonAssociativeSemiRng() : Category == Join(AbelianSemiGroup, Magma) with
+    antiCommutator : (%, %) -> %
+      ++ antiCommutator(a,b) returns a*b+b*a.
+
+)abbrev category NASRING NonAssociativeSemiRing
+++ Description:
+++ The category of semirings, not necessarily associative, not necessarily
+++ commutative, with 0 and 1.
+NonAssociativeSemiRing() : Category == Join(NonAssociativeSemiRng, AbelianMonoid, MagmaWithUnit)
+
+)abbrev category NARNG NonAssociativeRng
+++ Description:
+++ NonAssociativeRng is a basic ring-type structure, not necessarily
+++ commutative or associative, and not necessarily with unit.
+++
+++ Axioms:
+++   \spad{x*(y+z) = x*y + x*z}
+++   \spad{(x+y)*z = x*z + y*z}
+NonAssociativeRng() : Category == Join(NonAssociativeSemiRng, AbelianGroup) with
+    associator : (%, %, %) -> %
+      ++ associator(a,b,c) returns (a*b)*c - a*(b*c).
+    commutator : (%, %) -> %
+      ++ commutator(a,b) returns a*b - b*a.
+
+)abbrev category NARING NonAssociativeRing
+++ Description:
+++ A NonAssociativeRing is a non-associative rng which has a unit;
+++ the multiplication is not necessarily commutative or associative.
+NonAssociativeRing() : Category == Join(NonAssociativeRng, NonAssociativeSemiRing) with
+    characteristic : () -> NonNegativeInteger
+      ++ characteristic() returns the characteristic of the ring.
+    coerce : Integer -> %
+      ++ coerce(n) maps the integer n to an element of the ring.
+
+)abbrev category NAALG NonAssociativeAlgebra
+++ Description:
+++ NonAssociativeAlgebra is the category of non-associative algebras
+++ (modules which are themselves non-associative rngs).
+++
+++ Axioms:
+++   \spad{r*(a*b) = (r*a)*b}
+NonAssociativeAlgebra(R : CommutativeRing) : Category ==
+  Join(NonAssociativeRng, Module(R)) with
+    plenaryPower : (%, PositiveInteger) -> %
+      ++ plenaryPower(a,n) is the 2^(n-1)-fold plenary product of a.
+
+)abbrev category FINAALG FiniteRankNonAssociativeAlgebra
+++ Description:
+++ A FiniteRankNonAssociativeAlgebra is a non-associative algebra
+++ over a commutative ring R which is a free R-module of finite rank.
+FiniteRankNonAssociativeAlgebra(R : CommutativeRing) : Category ==
+  NonAssociativeAlgebra(R) with
+    rank : () -> PositiveInteger
+      ++ rank() returns the finite rank of the algebra as R-module.
+    someBasis : () -> Vector %
+      ++ someBasis() returns an R-module basis of the algebra.
+    structuralConstants : Vector % -> Vector Matrix R
+      ++ structuralConstants(v) returns the structural constants.
+    coordinates : (%, Vector %) -> Vector R
+      ++ coordinates(x, b) returns the coordinates of x in basis b.
+    represents : (Vector R, Vector %) -> %
+      ++ represents(v, b) reconstructs an element from coordinates.
+    leftTrace : % -> R
+      ++ leftTrace(x) is the trace of left multiplication by x.
+    rightTrace : % -> R
+      ++ rightTrace(x) is the trace of right multiplication by x.
+    leftNorm : % -> R
+      ++ leftNorm(x) is the determinant of left multiplication by x.
+    rightNorm : % -> R
+      ++ rightNorm(x) is the determinant of right multiplication by x.
+    commutative? : () -> Boolean
+      ++ commutative?() tests if multiplication is commutative.
+    associative? : () -> Boolean
+      ++ associative?() tests if multiplication is associative.
+    jacobiIdentity? : () -> Boolean
+      ++ jacobiIdentity?() tests if the Jacobi identity holds.
+    lieAlgebra? : () -> Boolean
+      ++ lieAlgebra?() tests if this is a Lie algebra.
+    jordanAlgebra? : () -> Boolean
+      ++ jordanAlgebra?() tests if this is a Jordan algebra.
+
+)abbrev category FRNAALG FramedNonAssociativeAlgebra
+++ Description:
+++ FramedNonAssociativeAlgebra is a FiniteRankNonAssociativeAlgebra
+++ with a fixed R-module basis.
+FramedNonAssociativeAlgebra(R : CommutativeRing) : Category ==
+  Join(FiniteRankNonAssociativeAlgebra(R), FramedModule(R)) with
+    elt : (%, Integer) -> R
+      ++ elt(x,i) returns the i-th coordinate of x in the fixed basis.
+    structuralConstants : () -> Vector Matrix R
+      ++ structuralConstants() returns structural constants in the fixed basis.
+    conditionsForIdempotents : () -> List Polynomial R
+      ++ conditionsForIdempotents() gives polynomial equations for idempotents.
+    leftDiscriminant : () -> R
+      ++ leftDiscriminant() is the discriminant of the left trace form.
+    rightDiscriminant : () -> R
+      ++ rightDiscriminant() is the discriminant of the right trace form.

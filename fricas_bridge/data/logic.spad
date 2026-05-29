@@ -1,0 +1,137 @@
+)abbrev category MEETLAT MeetSemilattice
+++ Description:
+++ A meet semilattice: a set with a commutative, associative, idempotent
+++ binary meet operation.
+++
+++ Axioms:
+++   \spad{meet(x,x) = x}
+++   \spad{meet(x,y) = meet(y,x)}
+++   \spad{meet(meet(x,y),z) = meet(x,meet(y,z))}
+MeetSemilattice : Category == SetCategory with
+    meet : (%, %) -> %
+      ++ meet(x,y) is the greatest lower bound of x and y.
+
+)abbrev category BMEET BoundedMeetSemilattice
+++ Description:
+++ A meet semilattice with a top element satisfying meet(x,top) = x.
+++
+++ Axioms:
+++   \spad{meet(x,top) = x}
+BoundedMeetSemilattice : Category == MeetSemilattice with
+    top : constant -> %
+      ++ top is the greatest element; meet(x,top) = x for all x.
+
+)abbrev category JOINLAT JoinSemilattice
+++ Description:
+++ A join semilattice: a set with a commutative, associative, idempotent
+++ binary join operation.
+++
+++ Axioms:
+++   \spad{join(x,x) = x}
+++   \spad{join(x,y) = join(y,x)}
+++   \spad{join(join(x,y),z) = join(x,join(y,z))}
+JoinSemilattice : Category == SetCategory with
+    join : (%, %) -> %
+      ++ join(x,y) is the least upper bound of x and y.
+
+)abbrev category BJOIN BoundedJoinSemilattice
+++ Description:
+++ A join semilattice with a bottom element satisfying join(x,bot) = x.
+++
+++ Axioms:
+++   \spad{join(x,bot) = x}
+BoundedJoinSemilattice : Category == JoinSemilattice with
+    bot : constant -> %
+      ++ bot is the least element; join(x,bot) = x for all x.
+
+)abbrev category LAT Lattice
+++ Description:
+++ A lattice has both meet and join satisfying the absorption laws.
+++
+++ Axioms:
+++   \spad{meet(x,join(x,y)) = x}
+++   \spad{join(x,meet(x,y)) = x}
+Lattice : Category == Join(MeetSemilattice, JoinSemilattice)
+
+)abbrev category BLAT BoundedLattice
+++ Description:
+++ A lattice with both a top element and a bottom element.
+BoundedLattice : Category == Join(BoundedMeetSemilattice, BoundedJoinSemilattice)
+
+)abbrev category DISTLAT DistributiveLattice
+++ Description:
+++ A distributive lattice where meet distributes over join and vice versa.
+++
+++ Axioms:
+++   \spad{meet(x,join(y,z)) = join(meet(x,y),meet(x,z))}
+++   \spad{join(x,meet(y,z)) = meet(join(x,y),join(x,z))}
+DistributiveLattice : Category == Lattice
+
+)abbrev category BDISTL BoundedDistributiveLattice
+++ Description:
+++ A bounded distributive lattice.
+++
+++ Axioms:
+++   \spad{meet(x,join(y,z)) = join(meet(x,y),meet(x,z))}
+++   \spad{join(x,meet(y,z)) = meet(join(x,y),join(x,z))}
+BoundedDistributiveLattice : Category == Join(BoundedLattice, DistributiveLattice)
+
+)abbrev category LOGIC Logic
+++ Description:
+++ Logic adds complement (lnot) to bounded distributive lattices.
+++
+++ Axioms:
+++   \spad{meet(x,lnot(x)) = bot}
+++   \spad{join(x,lnot(x)) = top}
+Logic : Category == BoundedDistributiveLattice with
+    lnot : % -> %
+      ++ lnot(x) is the logical complement of x.
+    true_val : constant -> %
+      ++ true_val is the logical truth (same as top).
+    false_val : constant -> %
+      ++ false_val is the logical falsehood (same as bot).
+
+)abbrev category PREORD Preorder
+++ Description:
+++ A preorder: a reflexive, transitive binary relation.
+Preorder() : Category == SetCategory with
+    leq : (%, %) -> Boolean
+      ++ leq(x,y) tests if x is less than or equal to y.
+    geq : (%, %) -> Boolean
+      ++ geq(x,y) tests if x is greater than or equal to y.
+
+)abbrev category POSET Poset
+++ Description:
+++ A partial order: antisymmetric preorder (x <= y and y <= x => x = y).
+Poset() : Category == Preorder with
+    minElt : (%, %) -> %
+      ++ minElt(x,y) returns the lesser of two comparable elements.
+    maxElt : (%, %) -> %
+      ++ maxElt(x,y) returns the greater of two comparable elements.
+
+)abbrev category TOSET TotalOrder
+++ Description:
+++ A total order: every pair of elements is comparable under leq.
+++
+++ Axioms:
+++   \spad{leq(x,y) = leq(y,x)}
+TotalOrder() : Category == Poset
+
+)abbrev category COMPLT CompleteLattic
+++ Description:
+++ A complete lattice: arbitrary suprema and infima exist.
+CompleteLattic() : Category == BoundedLattice with
+    sup : (%, %) -> %
+      ++ sup(x,y) returns the supremum of x and y.
+    inf : (%, %) -> %
+      ++ inf(x,y) returns the infimum of x and y.
+
+)abbrev category BOOLRING BooleanRing
+++ Description:
+++ A Boolean ring: a commutative ring where every element is idempotent.
+++
+++ Axioms:
+++   \spad{x*x = x}
+BooleanRing() : Category == Join(CommutativeRing, BoundedDistributiveLattice) with
+    xor : (%, %) -> %
+      ++ xor(x,y) is the symmetric difference (ring addition) of x and y.
