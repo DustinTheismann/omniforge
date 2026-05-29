@@ -1,4 +1,5 @@
 import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
 import Mathlib.Tactic
 
 /-!
@@ -179,3 +180,99 @@ theorem risch_equational (x : ℝ) :
   have := risch_verified_bronstein_1 x
   rw [← this.deriv]
   rfl
+
+
+-- ────────────────────────────────────────────────────────────────
+-- §5  Warm-up: the simplest log integral
+-- ────────────────────────────────────────────────────────────────
+
+/--
+**Theorem — ∫ x/(x²+1) dx = ln(x²+1)/2**
+
+`FriCAS: integrate(x/(x^2+1), x)` returns `log(x^2+1)/2`.
+
+The simplest entry in the log-integration class.  No domain restriction:
+x²+1 > 0 everywhere.
+-/
+theorem risch_simple_log (x : ℝ) :
+    HasDerivAt (fun t : ℝ => Real.log (t ^ 2 + 1) / 2) (x / (x ^ 2 + 1)) x := by
+  have hpos : (0 : ℝ) < x ^ 2 + 1 := by positivity
+  have hne  : (x ^ 2 + 1 : ℝ) ≠ 0 := hpos.ne'
+  have hg : HasDerivAt (fun t : ℝ => t ^ 2 + 1) (2 * x) x := by
+    have h := (hasDerivAt_pow 2 x).add (hasDerivAt_const x (1 : ℝ))
+    simpa [pow_one] using h
+  have h := (hg.log hne).div_const 2
+  convert h using 1
+  field_simp [hne]
+
+
+-- ────────────────────────────────────────────────────────────────
+-- §6  Trigonometric case: arctan via chain rule
+-- ────────────────────────────────────────────────────────────────
+
+/--
+**Theorem — ∫ 2x/(1+x⁴) dx = arctan(x²)**
+
+`FriCAS: integrate(2*x/(1+x^4), x)` returns `atan(x^2)`.
+
+Demonstrates the arctan branch of the Risch algorithm.
+No domain restriction: 1+x⁴ > 0 everywhere.
+-/
+theorem risch_arctan (x : ℝ) :
+    HasDerivAt (fun t : ℝ => Real.arctan (t ^ 2)) (2 * x / (1 + x ^ 4)) x := by
+  -- ①  d/dx[x²] = 2x
+  have hg : HasDerivAt (fun t : ℝ => t ^ 2) (2 * x) x := by
+    have h := hasDerivAt_pow 2 x
+    simpa [pow_one] using h
+  -- ②  d/du[arctan(u)] = 1/(1+u²), compose with ① via chain rule
+  have hF := (Real.hasDerivAt_arctan (x ^ 2)).comp x hg
+  -- ③  Algebra: 1/(1+(x²)²) · 2x = 2x/(1+x⁴)
+  convert hF using 1
+  have hpos : (0 : ℝ) < 1 + x ^ 4 := by positivity
+  field_simp [hpos.ne']
+  ring
+
+
+-- ────────────────────────────────────────────────────────────────
+-- §7  Domain-restriction case: partial fractions
+--     This is the discrepancy class — Lean forces hypotheses that
+--     FriCAS's output leaves implicit.
+-- ────────────────────────────────────────────────────────────────
+
+/--
+**Theorem — ∫ (x+1)/(x(x+2)) dx = ln(x)/2 + ln(x+2)/2**
+
+`FriCAS: integrate((x+1)/(x*(x+2)), x)` returns `log(x)/2 + log(x+2)/2`.
+
+**The discrepancy this surfaces**: FriCAS's output carries no domain annotation,
+but the antiderivative requires `x ≠ 0` and `x ≠ -2` for the derivative formula
+to hold.  The Lean theorem forces these conditions to be explicit hypotheses —
+they are *not* optional, they are the precise domain of validity.
+
+This is the class of results where the bridge acts as a domain-restriction
+verifier: every missing hypothesis in a CAS result becomes a proof obligation.
+-/
+theorem risch_partial_fractions (x : ℝ) (hx : x ≠ 0) (hx2 : x + 2 ≠ 0) :
+    HasDerivAt (fun t : ℝ => Real.log t / 2 + Real.log (t + 2) / 2)
+               ((x + 1) / (x * (x + 2))) x := by
+  -- ①  d/dx[log(x)/2] = 1/(2x)
+  --    FriCAS gives log(x) without stating x ≠ 0.  Here it is made explicit.
+  have hL1 : HasDerivAt (fun t : ℝ => Real.log t / 2) (1 / (2 * x)) x := by
+    have h := ((hasDerivAt_id x).log hx).div_const 2
+    convert h using 1
+    field_simp [hx]
+  -- ②  d/dx[log(x+2)/2] = 1/(2(x+2))
+  --    FriCAS gives log(x+2) without stating x ≠ -2.  Here it is made explicit.
+  have hg2 : HasDerivAt (fun t : ℝ => t + 2) 1 x := by
+    have h := (hasDerivAt_id x).add (hasDerivAt_const x (2 : ℝ))
+    simpa using h
+  have hL2 : HasDerivAt (fun t : ℝ => Real.log (t + 2) / 2) (1 / (2 * (x + 2))) x := by
+    have h := (hg2.log hx2).div_const 2
+    convert h using 1
+    field_simp [hx2]
+  -- ③  Assemble by linearity
+  have hF := hL1.add hL2
+  -- ④  Algebra: 1/(2x) + 1/(2(x+2)) = (x+1)/(x(x+2))   [partial fractions]
+  convert hF using 1
+  field_simp [hx, hx2, mul_ne_zero hx hx2]
+  ring
