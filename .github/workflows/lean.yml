@@ -22,18 +22,46 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # leanprover/lean-action reads lean-toolchain, runs lake update,
-      # downloads the Mathlib olean cache, and runs lake build.
+      # lean-action@v1.5.0 requires lake-manifest.json to be present before it
+      # runs (it refuses to auto-generate it, for reproducibility).  We generate
+      # it here by installing elan + running `lake update` ourselves first.
+
+      - name: Install elan
+        run: |
+          curl -sSfL \
+            https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+            | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> $GITHUB_PATH
+
+      # Cache the Lean toolchain binary so subsequent runs skip the download.
+      - name: Cache Lean toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/.elan
+          key: elan-${{ runner.os }}-${{ hashFiles('fricas_bridge/lean-toolchain') }}
+
+      - name: Generate lake-manifest.json
+        working-directory: fricas_bridge
+        run: |
+          # elan reads lean-toolchain, installs leanprover/lean4:v4.30.0 on
+          # first run (cached on subsequent runs), then resolves the Mathlib
+          # dependency graph and writes lake-manifest.json.
+          lake update
+
+      # With lake-manifest.json now present, lean-action can proceed:
+      #   1. downloads pre-built Mathlib olean files via lake exe cache get
+      #   2. runs lake build to typecheck RischVerification.lean
       - uses: leanprover/lean-action@v1.5.0
         with:
           lake-package-directory: fricas_bridge
           auto-config: "true"
 
-      - name: Report success
+      - name: Report verified theorems
         run: |
-          echo "All Lean proofs typechecked."
-          echo "Theorems verified:"
-          echo "  risch_verified_bronstein_1  — ∫ (2x·ln(x²+1)+x³)/(x²+1) dx"
-          echo "  risch_simple_log            — ∫ x/(x²+1) dx"
-          echo "  risch_arctan                — ∫ 2x/(1+x⁴) dx"
-          echo "  risch_partial_fractions     — ∫ (x+1)/(x(x+2)) dx  [domain: x≠0, x≠-2]"
+          echo "All Lean proofs typechecked against Mathlib."
+          echo ""
+          echo "Kernel-verified integration certificates:"
+          echo "  risch_verified_bronstein_1  ∫ (2x·ln(x²+1)+x³)/(x²+1) dx"
+          echo "  risch_simple_log            ∫ x/(x²+1) dx"
+          echo "  risch_arctan                ∫ 2x/(1+x⁴) dx"
+          echo "  risch_partial_fractions     ∫ (x+1)/(x(x+2)) dx  [x≠0, x≠-2]"
