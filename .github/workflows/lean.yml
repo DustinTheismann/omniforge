@@ -1,0 +1,39 @@
+name: Lean verification
+
+on:
+  push:
+    paths:
+      - 'fricas_bridge/**/*.lean'
+      - 'fricas_bridge/lakefile.lean'
+      - 'fricas_bridge/lean-toolchain'
+      - 'fricas_bridge/lake-manifest.json'
+      - '.github/workflows/lean.yml'
+  pull_request:
+    paths:
+      - 'fricas_bridge/**/*.lean'
+      - 'fricas_bridge/lakefile.lean'
+      - 'fricas_bridge/lean-toolchain'
+
+jobs:
+  verify:
+    name: Typecheck Lean proofs
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # leanprover/lean-action reads lean-toolchain, runs lake update,
+      # downloads the Mathlib olean cache, and runs lake build.
+      - uses: leanprover/lean-action@v1.5.0
+        with:
+          lake-package-directory: fricas_bridge
+          auto-config: "true"
+
+      - name: Report success
+        run: |
+          echo "All Lean proofs typechecked."
+          echo "Theorems verified:"
+          echo "  risch_verified_bronstein_1  — ∫ (2x·ln(x²+1)+x³)/(x²+1) dx"
+          echo "  risch_simple_log            — ∫ x/(x²+1) dx"
+          echo "  risch_arctan                — ∫ 2x/(1+x⁴) dx"
+          echo "  risch_partial_fractions     — ∫ (x+1)/(x(x+2)) dx  [domain: x≠0, x≠-2]"

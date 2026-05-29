@@ -176,10 +176,9 @@ For all x : ℝ,
 -/
 theorem risch_equational (x : ℝ) :
     deriv (fun t => Real.log (t ^ 2 + 1) ^ 2 / 2 + t ^ 2 / 2 - Real.log (t ^ 2 + 1) / 2) x
-    = (2 * x * Real.log (x ^ 2 + 1) + x ^ 3) / (x ^ 2 + 1) := by
-  have := risch_verified_bronstein_1 x
-  rw [← this.deriv]
-  rfl
+    = (2 * x * Real.log (x ^ 2 + 1) + x ^ 3) / (x ^ 2 + 1) :=
+  -- `exact` uses definitional equality: antiderivative/integrand are transparent defs.
+  (risch_verified_bronstein_1 x).deriv
 
 
 -- ────────────────────────────────────────────────────────────────
@@ -227,9 +226,11 @@ theorem risch_arctan (x : ℝ) :
   -- ②  d/du[arctan(u)] = 1/(1+u²), compose with ① via chain rule
   have hF := (Real.hasDerivAt_arctan (x ^ 2)).comp x hg
   -- ③  Algebra: 1/(1+(x²)²) · 2x = 2x/(1+x⁴)
+  --    Provide both denominators explicitly so field_simp can clear them.
   convert hF using 1
-  have hpos : (0 : ℝ) < 1 + x ^ 4 := by positivity
-  field_simp [hpos.ne']
+  have h1 : (0 : ℝ) < 1 + x ^ 4        := by positivity
+  have h2 : (0 : ℝ) < 1 + (x ^ 2) ^ 2  := by positivity
+  field_simp [h1.ne', h2.ne']
   ring
 
 
