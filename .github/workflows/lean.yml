@@ -22,10 +22,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # lean-action@v1.5.0 requires lake-manifest.json to be present before it
-      # runs (it refuses to auto-generate it, for reproducibility).  We generate
-      # it here by installing elan + running `lake update` ourselves first.
-
       - name: Install elan
         run: |
           curl -sSfL \
@@ -40,21 +36,25 @@ jobs:
           path: ~/.elan
           key: elan-${{ runner.os }}-${{ hashFiles('fricas_bridge/lean-toolchain') }}
 
-      - name: Generate lake-manifest.json
+      # Cache Mathlib oleans so subsequent runs skip the multi-hour rebuild.
+      - name: Cache Mathlib oleans
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mathlib
+          key: mathlib-${{ runner.os }}-${{ hashFiles('fricas_bridge/lakefile.lean') }}
+          restore-keys: |
+            mathlib-${{ runner.os }}-
+
+      - name: Resolve dependencies and typecheck
         working-directory: fricas_bridge
         run: |
-          # elan reads lean-toolchain, installs leanprover/lean4:v4.30.0 on
-          # first run (cached on subsequent runs), then resolves the Mathlib
-          # dependency graph and writes lake-manifest.json.
+          # elan reads lean-toolchain, installs leanprover/lean4:v4.30.0,
+          # then resolves the Mathlib dependency graph.
           lake update
-
-      # With lake-manifest.json now present, lean-action can proceed:
-      #   1. downloads pre-built Mathlib olean files via lake exe cache get
-      #   2. runs lake build to typecheck RischVerification.lean
-      - uses: leanprover/lean-action@v1.5.0
-        with:
-          lake-package-directory: fricas_bridge
-          auto-config: "true"
+          # Download pre-built Mathlib olean files (falls back to source build).
+          lake exe cache get || true
+          # Typecheck RischVerification.lean against Mathlib.
+          lake build
 
       - name: Report verified theorems
         run: |
