@@ -8,16 +8,16 @@ The first mechanical lift of a computer-algebra type system into a proof assista
 
 | Source artefact | Count | Lean output |
 |---|---|---|
-| FriCAS categories | 53 | `class` declarations |
-| Operations | 80 | Typed class fields (`%` → `α`, `Union(%,"failed")` → `Option α`) |
-| Axiom equations | 44 | `∀ x y z : α, ...` propositions (39 compiled, 5 informal) |
+| FriCAS categories | 102 | `class` declarations |
+| Operations | 234 | Typed class fields (`%` → `α`, `Union(%,"failed")` → `Option α`) |
+| Axiom equations | 65 | `∀ x y z : α, ...` propositions (60 compiled, 5 informal) |
 
 ## The finding
 
-Running `spad2lean.py --stats` measures something nobody had before:
+Running `python3 spad2lean.py` measures something nobody had before:
 **FriCAS's formalization density**.
-30 of 53 foundational categories (57%) state zero formal axioms in source —
-`EuclideanDomain`, `GcdDomain`, `PartialOrder` among them.
+66 of 102 foundational categories (64.7%) state zero formal axioms in source —
+`EuclideanDomain`, `GcdDomain`, `Ring`, `OrderedSet` among them.
 Their defining properties live only in prose.
 A Lean port forces you to fill every one of those gaps.
 
@@ -27,7 +27,10 @@ A Lean port forces you to fill every one of those gaps.
 |---|---|
 | `spad2lean.py` | Transpiler: SPAD categories → Lean 4 typeclasses |
 | `validate_bridge.py` | Name-resolution validator (first gate Lean's elaborator runs) |
-| `data/catdef.spad` | FriCAS algebra category source (subset) |
+| `data/catdef.spad` | FriCAS algebra category source — 53 algebraic structure categories |
+| `data/naalgc.spad` | Non-associative algebra categories (Magma, NonAssociativeRng, …) |
+| `data/logic.spad` | Lattice and logic categories (Lattice, Logic, BooleanRing, …) |
+| `data/aggcat.spad` | Aggregate/collection categories (Aggregate through BitAggregate — 33 categories) |
 | `output/FriCAS_Algebra.lean` | Generated Lean 4 output |
 | `FriCAS_Bridge_Demo.lean` | Bidirectional demo: FriCAS domain as Lean instance + oracle pattern |
 
@@ -61,9 +64,19 @@ to a universal quantifier:
 ax0 : ∀ x y z : α, (add (add x y) z) = (add x (add y z))
 ```
 
-Six axioms are correctly flagged as informal rather than mis-compiled:
+Five axioms are correctly flagged as informal rather than mis-compiled:
 - Partial subtraction (`c-b = a` where `-` is `subtractIfCan`)
 - Disjunctions (`ab=0 => a=0 or b=0`) — not equational
+
+## Source files
+
+| File | Categories | Axioms |
+|---|---|---|
+| `catdef.spad` | 53 | 53 |
+| `naalgc.spad` | 2 (new after dedup) | 3 |
+| `logic.spad` | 14 | 22 |
+| `aggcat.spad` | 33 | 2 |
+| **Total** | **102** | **65 (60 compiled)** |
 
 ## The bidirectional vision
 
@@ -88,3 +101,6 @@ This is the first brick.
 - The `%`-parametric axioms treat all variables as carrier-typed; ring
   parameters (the `R` in `LeftModule(R)`) would need separate quantifiers
   in a fully faithful translation.
+- Aggregate categories use an element type parameter `S`; the current
+  transpiler maps them to carrier `α`, which works for the typeclass skeleton
+  but elides the element-type distinction in a full translation.

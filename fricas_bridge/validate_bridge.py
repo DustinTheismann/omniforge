@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from spad2lean import parse_spad_file, Category, AxiomCompiler, op_to_field
+from spad2lean import parse_spad_file, parse_spad_files, Category, AxiomCompiler, op_to_field, DEFAULT_FILES
 
 
 def collect_scope(cat_name: str, cat_by_name: dict) -> set:
@@ -116,15 +116,15 @@ def main():
     ap = argparse.ArgumentParser(
         description="Validate FriCAS→Lean bridge: axiom name resolution check"
     )
-    ap.add_argument("spad_file", nargs='?',
-                    default=str(Path(__file__).parent / "data" / "catdef.spad"))
+    ap.add_argument("spad_files", nargs='*',
+                    default=[str(f) for f in DEFAULT_FILES],
+                    help="SPAD source files (default: all four bundled files)")
     ap.add_argument("--quiet", "-q", action="store_true")
     ap.add_argument("--summary", "-s", action="store_true",
                     help="Print per-category axiom summary")
     args = ap.parse_args()
 
-    spad_path = Path(args.spad_file)
-    categories = parse_spad_file(spad_path)
+    categories = parse_spad_files(args.spad_files)
 
     print(f"Validating {len(categories)} categories...\n")
     passed, failed, failures = validate(categories, verbose=not args.quiet)

@@ -579,3 +579,298 @@ class BooleanRing (α : Type*) extends CommutativeRing α, BoundedDistributiveLa
   xor : α → α → α
 
   ax0 : ∀ x : α, (mul x x) = x
+
+-- ────────────────────────────────────────────────────────────────────
+-- Aggregate  [AGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class Aggregate (α : Type*) extends Type α where
+  empty : α
+  empty_ : α → Bool
+  size_ : α → Nat → Bool
+  more_ : α → Nat → Bool
+  less_ : α → Nat → Bool
+  _ : α → Nat
+  copy : α → α
+  eq_ : α → α → Bool
+
+  ax0 : ∀ a : α, (copy a) = a
+
+-- ────────────────────────────────────────────────────────────────────
+-- HomogeneousAggregate  [HOAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class HomogeneousAggregate (S : Type) (α : Type*) extends Aggregate α where
+  member_ : S → α → Bool
+  members : α → List S
+  count : S -> Bool → α → Nat
+  any_ : S -> Bool → α → Bool
+  every_ : S -> Bool → α → Bool
+
+-- ────────────────────────────────────────────────────────────────────
+-- Collection  [CLAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class Collection (S : Type) (α : Type*) extends HomogeneousAggregate S α where
+  construct : List S → α
+  find : S -> Bool → α → Option _
+  select : S -> Bool → α → α
+  remove : S -> Bool → α → α
+  reduce : (S, S → S, α, S) -> S
+  insert_ : S → α → α
+
+-- ────────────────────────────────────────────────────────────────────
+-- BagAggregate  [BGAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class BagAggregate (S : Type) (α : Type*) extends Collection S α where
+  bag : List S → α
+  insert_ : S → α → α
+  extract_ : α → S
+  inspect : α → S
+
+-- ────────────────────────────────────────────────────────────────────
+-- StackAggregate  [SKAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class StackAggregate (S : Type) (α : Type*) extends BagAggregate S α where
+  push_ : S → α → α
+  pop_ : α → S
+  top : α → S
+  depth : α → Nat
+
+-- ────────────────────────────────────────────────────────────────────
+-- QueueAggregate  [QUAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class QueueAggregate (S : Type) (α : Type*) extends BagAggregate S α where
+  enqueue_ : S → α → α
+  dequeue_ : α → S
+  front : α → S
+  back : α → S
+  length : α → Nat
+
+-- ────────────────────────────────────────────────────────────────────
+-- DequeueAggregate  [DQAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class DequeueAggregate (S : Type) (α : Type*) extends QueueAggregate S α, StackAggregate S α where
+  pushFront_ : S → α → α
+  pushBack_ : S → α → α
+  popFront_ : α → S
+  popBack_ : α → S
+
+-- ────────────────────────────────────────────────────────────────────
+-- PriorityQueueAggregate  [PRQAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class PriorityQueueAggregate (S : OrderedSet) (α : Type*) extends BagAggregate S α where
+  max : α → S
+
+-- ────────────────────────────────────────────────────────────────────
+-- DictionaryOperations  [DIAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class DictionaryOperations (S : SetCategory) (α : Type*) extends HomogeneousAggregate S α where
+  insert_ : S → α → α
+  remove_ : S → α → α
+  select_ : S -> Bool → α → α
+
+-- ────────────────────────────────────────────────────────────────────
+-- Dictionary  [DIOPS]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class Dictionary (S : SetCategory) (α : Type*) extends DictionaryOperations S α where
+  dictionary : List S → α
+
+-- ────────────────────────────────────────────────────────────────────
+-- MultiDictionary  [MDAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class MultiDictionary (S : SetCategory) (α : Type*) extends Dictionary S α where
+  duplicates_ : α → Bool
+  multiset : α → α
+
+-- ────────────────────────────────────────────────────────────────────
+-- SetAggregate  [SETAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class SetAggregate (S : SetCategory) (α : Type*) extends Dictionary S α where
+  set : List S → α
+  union : α → α → α
+  intersect : α → α → α
+  difference : α → α → α
+  subset_ : α → α → Bool
+  symmetricDifference : α → α → α
+
+  ax0 : ∀ a b c : α, (intersect a (union b c)) = (union (intersect a b) (intersect a c))
+
+-- ────────────────────────────────────────────────────────────────────
+-- FiniteSetAggregate  [FSAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class FiniteSetAggregate (S : SetCategory) (α : Type*) extends SetAggregate S α where
+  parts : α → List S
+  cardinality : α → Nat
+
+-- ────────────────────────────────────────────────────────────────────
+-- MultisetAggregate  [MSAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class MultisetAggregate (S : SetCategory) (α : Type*) extends SetAggregate S α where
+  multiplicity : S → α → Nat
+
+-- ────────────────────────────────────────────────────────────────────
+-- OrderedMultisetAggregate  [OMSAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class OrderedMultisetAggregate (S : OrderedSet) (α : Type*) extends MultisetAggregate S α where
+  -- (no new operations beyond inherited)
+
+-- ────────────────────────────────────────────────────────────────────
+-- KeyedDictionary  [KDAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class KeyedDictionary (Key : SetCategory) (Entry : Type) (α : Type*) extends DictionaryOperations Record_ α where
+  search : Key → α → Option _
+  remove_ : Key → α → Option _
+  keys : α → List Key
+  entries : α → List Entry
+  key_ : Key → α → Bool
+
+-- ────────────────────────────────────────────────────────────────────
+-- Eltable  [ELTAB]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class Eltable (S : Type) (E : Type) (α : Type*) extends Type α where
+  elt : α → S → E
+
+-- ────────────────────────────────────────────────────────────────────
+-- EltableAggregate  [ELTAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class EltableAggregate (Index : Type) (Entry : Type) (α : Type*) extends Aggregate α, Eltable Index Entry α where
+  qelt : α → Index → Entry
+
+-- ────────────────────────────────────────────────────────────────────
+-- IndexedAggregate  [IXAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class IndexedAggregate (Index : OrderedSet) (Entry : Type) (α : Type*) extends EltableAggregate Index Entry α where
+  minIndex : α → Index
+  maxIndex : α → Index
+  first : α → Entry
+  last : α → Entry
+  entry_ : Entry → α → Bool
+
+-- ────────────────────────────────────────────────────────────────────
+-- TableAggregate  [TBAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class TableAggregate (Key : SetCategory) (Entry : Type) (α : Type*) extends IndexedAggregate Key Entry α, KeyedDictionary Key Entry α where
+  table : List Record_ → α
+  setelt_ : α → Key → Entry → Entry
+
+-- ────────────────────────────────────────────────────────────────────
+-- RecursiveAggregate  [RCAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class RecursiveAggregate (S : Type) (α : Type*) extends HomogeneousAggregate S α where
+  value : α → S
+  children : α → List α
+  child_ : α → α → Bool
+  node_ : α → Bool
+  leaf_ : α → Bool
+  nodes : α → List α
+  cyclic_ : α → Bool
+
+-- ────────────────────────────────────────────────────────────────────
+-- BinaryRecursiveAggregate  [BRAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class BinaryRecursiveAggregate (S : Type) (α : Type*) extends RecursiveAggregate S α where
+  left : α → α
+  right : α → α
+  node : α → S → α → α
+
+-- ────────────────────────────────────────────────────────────────────
+-- DoublyLinkedAggregate  [DLAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class DoublyLinkedAggregate (S : Type) (α : Type*) extends RecursiveAggregate S α where
+  next : α → α
+  prev : α → α
+
+-- ────────────────────────────────────────────────────────────────────
+-- UnaryRecursiveAggregate  [URAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class UnaryRecursiveAggregate (S : Type) (α : Type*) extends RecursiveAggregate S α where
+  first : α → S
+  rest : α → α
+  setfirst_ : α → S → S
+  setrest_ : α → α → α
+  concat : α → α → α
+  concat_ : α → α → α
+  second : α → S
+  third : α → S
+  last : α → S
+
+-- ────────────────────────────────────────────────────────────────────
+-- LinearAggregate  [LNAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class LinearAggregate (S : Type) (α : Type*) extends IndexedAggregate Nat S α, Collection S α where
+  new : Nat → S → α
+  concat : α → α → α
+  reverse : α → α
+  reverse_ : α → α
+  sorted_ : α → (S, S → Bool) -> Bool
+  sort : α → (S, S → Bool) -> α
+  sort_ : α → (S, S → Bool) -> α
+
+-- ────────────────────────────────────────────────────────────────────
+-- FiniteLinearAggregate  [FLINEAR]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class FiniteLinearAggregate (S : Type) (α : Type*) extends LinearAggregate S α where
+  copyInto_ : α → α → Int → α
+  position : S → α → Int
+
+-- ────────────────────────────────────────────────────────────────────
+-- OneDimensionalArrayAggregate  [ODARR]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class OneDimensionalArrayAggregate (S : Type) (α : Type*) extends FiniteLinearAggregate S α where
+  vector : List S → α
+
+-- ────────────────────────────────────────────────────────────────────
+-- ExtensibleLinearAggregate  [ELAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class ExtensibleLinearAggregate (S : Type) (α : Type*) extends LinearAggregate S α where
+  insert_ : S → α → Int → α
+  delete_ : α → Int → α
+  remove_ : S → α → α
+
+-- ────────────────────────────────────────────────────────────────────
+-- StreamAggregate  [STAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class StreamAggregate (S : Type) (α : Type*) extends LinearAggregate S α where
+  explicitlyEmpty_ : α → Bool
+  lazy_ : α → Bool
+  numberOfComputedEntries : α → Nat
+  filterUntil : S -> Bool → α → α
+  select : S -> Bool → α → α
+
+-- ────────────────────────────────────────────────────────────────────
+-- ListAggregate  [LSAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class ListAggregate (S : Type) (α : Type*) extends ExtensibleLinearAggregate S α, UnaryRecursiveAggregate S α where
+  list : S → α
+
+-- ────────────────────────────────────────────────────────────────────
+-- AssociationListAggregate  [ALAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class AssociationListAggregate (Key : SetCategory) (Entry : Type) (α : Type*) extends ListAggregate Record_ α, KeyedDictionary Key Entry α where
+  assoc : Key → α → Union(Record_, "failed")
+
+-- ────────────────────────────────────────────────────────────────────
+-- StringAggregate  [SRAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class StringAggregate (α : Type*) extends OneDimensionalArrayAggregate Character α where
+  upperCase : α → α
+  lowerCase : α → α
+  capitalize : α → α
+  trim : α → Character → α
+  split : α → Character → List α
+  coerce : α → String
+  match_ : α → α → Character → Bool
+  substring_ : α → α → Nat → Bool
+  prefix_ : α → α → Bool
+  suffix_ : α → α → Bool
+
+-- ────────────────────────────────────────────────────────────────────
+-- BitAggregate  [BTAGG]  [aggcat.spad]
+-- ────────────────────────────────────────────────────────────────────
+class BitAggregate (α : Type*) extends OneDimensionalArrayAggregate Bit α where
+  and : α → α → α
+  or : α → α → α
+  xor : α → α → α
+  not : α → α
+  nand : α → α → α
+  nor : α → α → α
+
+  ax0 : ∀ a b : α, (xor (and a b) (or a b)) = (or a b)

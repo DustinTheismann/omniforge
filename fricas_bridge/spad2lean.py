@@ -687,6 +687,7 @@ DEFAULT_FILES = [
     DATA_DIR / "catdef.spad",
     DATA_DIR / "naalgc.spad",
     DATA_DIR / "logic.spad",
+    DATA_DIR / "aggcat.spad",
 ]
 
 def main():
@@ -694,7 +695,7 @@ def main():
     ap = argparse.ArgumentParser(description="Transpile FriCAS SPAD categories to Lean 4")
     ap.add_argument("spad_files", nargs='*',
                     default=[str(f) for f in DEFAULT_FILES],
-                    help="SPAD source files (default: catdef.spad naalgc.spad logic.spad)")
+                    help="SPAD source files (default: catdef.spad naalgc.spad logic.spad aggcat.spad)")
     ap.add_argument("--output", "-o",
                     default=str(Path(__file__).parent / "output" / "FriCAS_Algebra.lean"))
     args = ap.parse_args()
