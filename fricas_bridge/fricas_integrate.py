@@ -54,60 +54,200 @@ from textwrap import dedent
 # ---------------------------------------------------------------------------
 
 CORPUS: list[dict] = [
+    # ── Class A: No domain restriction (log args always x²+c > 0) ────────────
     {
         "label": "bronstein_1_1",
-        "description": "Bronstein §1.1 — the flagship example; requires Risch algorithm",
+        "class": "A",
+        "description": "Bronstein §1.1 — flagship Risch example; no domain restriction (x²+1 > 0)",
         "integrand":    "(2*x*log(x^2+1)+x^3)/(x^2+1)",
         "antiderivative": "log(x^2+1)^2/2 + x^2/2 - log(x^2+1)/2",
         "var": "x",
     },
     {
         "label": "simple_log",
-        "description": "∫ x/(x²+1) dx — simplest log-integration entry",
+        "class": "A",
+        "description": "∫ x/(x²+1) dx = log(x²+1)/2; no domain restriction",
         "integrand":    "x/(x^2+1)",
         "antiderivative": "log(x^2+1)/2",
         "var": "x",
     },
     {
         "label": "arctan_chain",
-        "description": "∫ 2x/(1+x⁴) dx — arctan branch, chain rule",
+        "class": "A",
+        "description": "∫ 2x/(1+x⁴) dx = arctan(x²); no domain restriction",
         "integrand":    "2*x/(1+x^4)",
         "antiderivative": "atan(x^2)",
         "var": "x",
     },
     {
-        "label": "partial_fractions",
-        "description": "∫ (x+1)/(x(x+2)) dx — partial fractions; domain restriction x≠0, x≠−2",
-        "integrand":    "(x+1)/(x*(x+2))",
-        "antiderivative": "log(x)/2 + log(x+2)/2",
+        "label": "basic_arctan",
+        "class": "A",
+        "description": "∫ 1/(1+x²) dx = arctan(x); no domain restriction",
+        "integrand":    "1/(1+x^2)",
+        "antiderivative": "atan(x)",
         "var": "x",
     },
     {
+        "label": "quadratic_arctan",
+        "class": "A",
+        "description": "∫ 1/(x²+4) dx = arctan(x/2)/2; no domain restriction",
+        "integrand":    "1/(x^2+4)",
+        "antiderivative": "atan(x/2)/2",
+        "var": "x",
+    },
+    {
+        "label": "arctan_shifted",
+        "class": "A",
+        "description": "∫ 1/(x²+2x+2) dx = arctan(x+1); no domain restriction ((x+1)²+1 > 0)",
+        "integrand":    "1/(x^2+2*x+2)",
+        "antiderivative": "atan(x+1)",
+        "var": "x",
+    },
+    # ── Class B: Log with sign-sensitive argument (simple poles) ─────────────
+    {
         "label": "log_x",
-        "description": "∫ log(x) dx = x·log(x) − x  (domain: x ≠ 0)",
+        "class": "B",
+        "description": "∫ log(x) dx = x·log(x)−x; domain: x ≠ 0  [FriCAS omits this]",
         "integrand":    "log(x)",
         "antiderivative": "x*log(x) - x",
         "var": "x",
     },
     {
         "label": "x2_log_x",
-        "description": "∫ x²·log(x) dx = x³·log(x)/3 − x³/9  (domain: x ≠ 0)",
+        "class": "B",
+        "description": "∫ x²·log(x) dx = x³·log(x)/3−x³/9; domain: x ≠ 0  [FriCAS omits]",
         "integrand":    "x^2*log(x)",
         "antiderivative": "x^3*log(x)/3 - x^3/9",
         "var": "x",
     },
     {
+        "label": "recip_x",
+        "class": "B",
+        "description": "∫ 1/x dx = log(x); domain: x ≠ 0  [FriCAS omits]",
+        "integrand":    "1/x",
+        "antiderivative": "log(x)",
+        "var": "x",
+    },
+    {
+        "label": "recip_linear",
+        "class": "B",
+        "description": "∫ 1/(x+1) dx = log(x+1); domain: x+1 ≠ 0  [FriCAS omits]",
+        "integrand":    "1/(x+1)",
+        "antiderivative": "log(x+1)",
+        "var": "x",
+    },
+    {
+        "label": "linear_over_linear",
+        "class": "B",
+        "description": "∫ (x+2)/(x+1) dx = x+log(x+1); domain: x+1 ≠ 0  [FriCAS omits]",
+        "integrand":    "(x+2)/(x+1)",
+        "antiderivative": "x + log(x+1)",
+        "var": "x",
+    },
+    {
+        "label": "log_quadratic_neg",
+        "class": "B",
+        "description": "∫ x/(x²−4) dx = log(x²−4)/2; domain: x²−4 ≠ 0 (x ≠ ±2)  [FriCAS omits]",
+        "integrand":    "x/(x^2-4)",
+        "antiderivative": "log(x^2-4)/2",
+        "var": "x",
+    },
+    # ── Class C: Two-pole partial fractions ──────────────────────────────────
+    {
         "label": "rational_poles",
-        "description": "∫ 1/(x²−1) dx  (domain: x≠1, x≠−1) — Lean surfaces the poles",
+        "class": "C",
+        "description": "∫ 1/(x²−1) dx = log(x−1)/2−log(x+1)/2; domain: x≠1, x≠−1",
         "integrand":    "1/(x^2-1)",
         "antiderivative": "log(x-1)/2 - log(x+1)/2",
         "var": "x",
     },
     {
-        "label": "basic_arctan",
-        "description": "∫ 1/(1+x²) dx = arctan(x) — no domain restriction",
-        "integrand":    "1/(1+x^2)",
-        "antiderivative": "atan(x)",
+        "label": "partial_fractions",
+        "class": "C",
+        "description": "∫ (x+1)/(x(x+2)) dx; domain: x≠0, x≠−2  [FriCAS omits both]",
+        "integrand":    "(x+1)/(x*(x+2))",
+        "antiderivative": "log(x)/2 + log(x+2)/2",
+        "var": "x",
+    },
+    {
+        "label": "two_poles_linear",
+        "class": "C",
+        "description": "∫ (2x+1)/(x(x+1)) dx = log(x)+log(x+1); domain: x≠0, x≠−1",
+        "integrand":    "(2*x+1)/(x*(x+1))",
+        "antiderivative": "log(x) + log(x+1)",
+        "var": "x",
+    },
+    {
+        "label": "pf_distinct_2",
+        "class": "C",
+        "description": "∫ 1/((x−1)(x−3)) dx = log(x−3)/2−log(x−1)/2; domain: x≠1, x≠3",
+        "integrand":    "1/((x-1)*(x-3))",
+        "antiderivative": "log(x-3)/2 - log(x-1)/2",
+        "var": "x",
+    },
+    {
+        "label": "pf_shifted_2",
+        "class": "C",
+        "description": "∫ (3x+2)/((x+1)(x+2)) dx = −log(x+1)+4log(x+2); domain: x≠−1, x≠−2",
+        "integrand":    "(3*x+2)/((x+1)*(x+2))",
+        "antiderivative": "-log(x+1) + 4*log(x+2)",
+        "var": "x",
+    },
+    {
+        "label": "log_ratio_2",
+        "class": "C",
+        "description": "∫ 1/((x+2)(x+4)) dx = log(x+2)/2−log(x+4)/2; domain: x≠−2, x≠−4",
+        "integrand":    "1/((x+2)*(x+4))",
+        "antiderivative": "log(x+2)/2 - log(x+4)/2",
+        "var": "x",
+    },
+    # ── Class D: Three-or-more-pole partial fractions ─────────────────────────
+    {
+        "label": "three_poles",
+        "class": "D",
+        "description": "∫ 1/(x(x+1)(x+2)) dx; domain: x≠0, x≠−1, x≠−2  [3 implicit hypotheses]",
+        "integrand":    "1/(x*(x+1)*(x+2))",
+        "antiderivative": "log(x)/2 - log(x+1) + log(x+2)/2",
+        "var": "x",
+    },
+    {
+        "label": "three_poles_sym",
+        "class": "D",
+        "description": "∫ 1/(x(x−1)(x+1)) dx; domain: x≠0, x≠1, x≠−1  [3 implicit hypotheses]",
+        "integrand":    "1/(x*(x-1)*(x+1))",
+        "antiderivative": "-log(x) + log(x-1)/2 + log(x+1)/2",
+        "var": "x",
+    },
+    {
+        "label": "three_poles_shifted",
+        "class": "D",
+        "description": "∫ 1/((x+1)(x+2)(x+3)) dx; domain: x≠−1, x≠−2, x≠−3",
+        "integrand":    "1/((x+1)*(x+2)*(x+3))",
+        "antiderivative": "log(x+1)/2 - log(x+2) + log(x+3)/2",
+        "var": "x",
+    },
+    {
+        "label": "pf_weighted",
+        "class": "D",
+        "description": "∫ (2x²+5x+1)/(x(x+1)(x+2)) dx; domain: x≠0, x≠−1, x≠−2",
+        "integrand":    "(2*x^2+5*x+1)/(x*(x+1)*(x+2))",
+        "antiderivative": "log(x)/2 + 2*log(x+1) - log(x+2)/2",
+        "var": "x",
+    },
+    {
+        "label": "four_poles",
+        "class": "D",
+        "description": "∫ 1/(x(x+1)(x+2)(x+3)) dx; domain: x≠0,−1,−2,−3  [4 implicit hypotheses]",
+        "integrand":    "1/(x*(x+1)*(x+2)*(x+3))",
+        "antiderivative": "log(x)/6 - log(x+1)/2 + log(x+2)/2 - log(x+3)/6",
+        "var": "x",
+    },
+    {
+        "label": "pf_numer_deg2",
+        "class": "D",
+        "description": "∫ (x²−x−1)/(x(x−1)(x+1)) dx; domain: x≠0, x≠1, x≠−1",
+        "integrand":    "(x^2-x-1)/(x*(x-1)*(x+1))",
+        "antiderivative": "log(x) - log(x-1)/2 + log(x+1)/2",
         "var": "x",
     },
 ]
@@ -412,24 +552,58 @@ def call_fricas(integrand: str, var: str, timeout: int = 30) -> str | None:
 # Audit mode: print domain restriction summary across the corpus
 # ---------------------------------------------------------------------------
 
+_CLASS_NAMES = {
+    "A": "No domain restriction (log args always positive)",
+    "B": "Simple log-domain restriction",
+    "C": "Two-pole partial fractions",
+    "D": "Three-or-more-pole partial fractions",
+}
+
+
 def audit_corpus(corpus: list[dict]) -> None:
-    print("Domain-Restriction Audit")
-    print("=" * 72)
-    print(f"{'Integral':<25}  {'Condition':<30}  {'Kind':<10}  {'Trivial'}")
-    print("-" * 72)
-    gaps = 0
+    # Collect per-entry results first
+    results = []
     for entry in corpus:
         hyps = infer_hypotheses(entry["integrand"], entry["antiderivative"], entry["var"])
         nontrivial = [h for h in hyps if not h.trivial]
-        if not nontrivial:
-            print(f"  {entry['label']:<23}  {'(none — defined on all ℝ)':<30}")
-        for h in nontrivial:
-            print(f"  {entry['label']:<23}  {h.lean_expr:<30}  {h.kind:<10}  {'no'}")
-            gaps += 1
-    print("-" * 72)
-    print(f"\n{gaps} implicit condition(s) across {len(corpus)} integral(s).")
-    print("Each non-trivial condition is a hypothesis FriCAS omits but Lean requires.")
-    print("Case (b)/(c) conditions are the discrepancy candidates.")
+        results.append((entry, nontrivial))
+
+    # Group by class
+    classes: dict[str, list] = {}
+    for entry, hyps in results:
+        cls = entry.get("class", "?")
+        classes.setdefault(cls, []).append((entry, hyps))
+
+    total_gaps = 0
+    total_integrals = len(corpus)
+
+    for cls in sorted(classes):
+        cls_entries = classes[cls]
+        cls_gaps = sum(len(h) for _, h in cls_entries)
+        total_gaps += cls_gaps
+        clean = sum(1 for _, h in cls_entries if not h)
+        print(f"\nClass {cls}: {_CLASS_NAMES.get(cls, cls)}")
+        print(f"  {len(cls_entries)} integrals, {cls_gaps} non-trivial conditions, {clean} clean")
+        print(f"  {'Integral':<26} {'Lean condition':<32} Kind")
+        print(f"  {'-'*26} {'-'*32} ----")
+        for entry, hyps in cls_entries:
+            if not hyps:
+                print(f"  {entry['label']:<26} (none — defined on all ℝ)")
+            for h in hyps:
+                print(f"  {entry['label']:<26} {h.lean_expr:<32} {h.kind}")
+
+    print()
+    print("=" * 72)
+    print(f"SUMMARY: {total_integrals} integrals, {total_gaps} non-trivial conditions")
+    print(f"  FriCAS omits every one of these {total_gaps} conditions from its output.")
+    print(f"  Each is a hypothesis that Lean forces the caller to state explicitly.")
+    class_counts = {cls: sum(len(h) for _, h in entries)
+                    for cls, entries in classes.items()}
+    for cls in sorted(class_counts):
+        n = class_counts[cls]
+        total_in_class = len(classes[cls])
+        print(f"  Class {cls}: {n} conditions across {total_in_class} integrals")
+    print("=" * 72)
 
 
 # ---------------------------------------------------------------------------

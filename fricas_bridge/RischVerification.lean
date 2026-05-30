@@ -277,3 +277,108 @@ theorem risch_partial_fractions (x : ℝ) (hx : x ≠ 0) (hx2 : x + 2 ≠ 0) :
   convert hF using 1
   field_simp [hx, hx2, mul_ne_zero hx hx2]
   ring
+
+
+-- ────────────────────────────────────────────────────────────────
+-- §8  Discrepancy Catalog
+--     Four theorems, one per discrepancy class, kernel-verified.
+--     Each hypothesis below is implicit in FriCAS's output and
+--     explicit in Lean's type-checker.
+-- ────────────────────────────────────────────────────────────────
+
+/--
+**Class A — arctan with completed square (audit false-positive)**
+
+`FriCAS: integrate(1/(x^2+2*x+2), x)` returns `atan(x+1)`.
+
+The syntactic audit flags `x²+2x+2` as a potential restriction, but
+`x²+2x+2 = (x+1)²+1 > 0` everywhere: **no hypothesis is needed**.
+The proof fills the positivity obligation with `nlinarith`, demonstrating
+that the audit's syntactic scan produces false positives for completed
+squares — a known limitation worth cataloging.
+-/
+theorem risch_arctan_shifted (x : ℝ) :
+    HasDerivAt (fun t : ℝ => Real.arctan (t + 1)) (1 / (x ^ 2 + 2 * x + 2)) x := by
+  have hg : HasDerivAt (fun t : ℝ => t + 1) 1 x := by
+    simpa using (hasDerivAt_id x).add (hasDerivAt_const x (1 : ℝ))
+  have hF := (Real.hasDerivAt_arctan (x + 1)).comp x hg
+  convert hF using 1
+  have h1 : (0 : ℝ) < 1 + (x + 1) ^ 2 := by positivity
+  have h2 : (0 : ℝ) < x ^ 2 + 2 * x + 2 := by nlinarith [sq_nonneg (x + 1)]
+  field_simp [h1.ne', h2.ne']
+  ring
+
+/--
+**Class B — ∫ 1/x dx = log(x)  (one implicit hypothesis)**
+
+`FriCAS: integrate(1/x, x)` returns `log(x)` with no annotation.
+
+Lean requires `hx : x ≠ 0`.  This is the simplest instance of the
+log-domain discrepancy class: a single pole, a single omitted condition.
+-/
+theorem risch_recip_x (x : ℝ) (hx : x ≠ 0) :
+    HasDerivAt (fun t : ℝ => Real.log t) (1 / x) x := by
+  have h := (hasDerivAt_id x).log hx
+  simpa [id] using h
+
+/--
+**Class B/C boundary — ∫ x/(x²−4) dx = log(x²−4)/2**
+
+`FriCAS: integrate(x/(x^2-4), x)` returns `log(x^2-4)/2` with no annotation.
+
+`x²−4 ≠ 0` (i.e. x ≠ 2 and x ≠ −2) is implicit.  Unlike Class C where
+partial fractions surface each pole separately, FriCAS here returns a
+single log of a *factorable* quadratic, bundling both poles into one
+non-trivial condition on the log argument.
+-/
+theorem risch_log_quadratic_neg (x : ℝ) (hne : (x ^ 2 - 4 : ℝ) ≠ 0) :
+    HasDerivAt (fun t : ℝ => Real.log (t ^ 2 - 4) / 2) (x / (x ^ 2 - 4)) x := by
+  have hg : HasDerivAt (fun t : ℝ => t ^ 2 - 4) (2 * x) x := by
+    have h := (hasDerivAt_pow 2 x).sub (hasDerivAt_const x (4 : ℝ))
+    simpa [pow_one] using h
+  have h := (hg.log hne).div_const 2
+  convert h using 1
+  field_simp [hne]
+
+/--
+**Class D — ∫ 1/(x(x+1)(x+2)) dx  (three implicit hypotheses)**
+
+`FriCAS: integrate(1/(x*(x+1)*(x+2)), x)` returns
+`log(x)/2 − log(x+1) + log(x+2)/2` with no annotation.
+
+Lean requires three hypotheses — one per pole:
+  `hx : x ≠ 0`, `hx1 : x+1 ≠ 0`, `hx2 : x+2 ≠ 0`.
+
+This is the maximum-discrepancy class: the hypothesis count equals the
+number of distinct poles.  For the four-pole case in the corpus, four
+conditions would be required.  FriCAS documents none of them.
+-/
+theorem risch_three_poles (x : ℝ) (hx : x ≠ 0) (hx1 : x + 1 ≠ 0) (hx2 : x + 2 ≠ 0) :
+    HasDerivAt (fun t : ℝ => Real.log t / 2 - Real.log (t + 1) + Real.log (t + 2) / 2)
+               (1 / (x * (x + 1) * (x + 2))) x := by
+  -- ①  d/dx[log(x)/2] = 1/(2x)
+  have hL1 : HasDerivAt (fun t : ℝ => Real.log t / 2) (1 / (2 * x)) x := by
+    have h := ((hasDerivAt_id x).log hx).div_const 2
+    convert h using 1; field_simp [hx]
+  -- ②  d/dx[log(x+1)] = 1/(x+1)
+  have hg1 : HasDerivAt (fun t : ℝ => t + 1) 1 x := by
+    simpa using (hasDerivAt_id x).add (hasDerivAt_const x (1 : ℝ))
+  have hL2 : HasDerivAt (fun t : ℝ => Real.log (t + 1)) (1 / (x + 1)) x := by
+    have h := hg1.log hx1
+    convert h using 1; field_simp [hx1]
+  -- ③  d/dx[log(x+2)/2] = 1/(2(x+2))
+  have hg2 : HasDerivAt (fun t : ℝ => t + 2) 1 x := by
+    simpa using (hasDerivAt_id x).add (hasDerivAt_const x (2 : ℝ))
+  have hL3 : HasDerivAt (fun t : ℝ => Real.log (t + 2) / 2) (1 / (2 * (x + 2))) x := by
+    have h := (hg2.log hx2).div_const 2
+    convert h using 1; field_simp [hx2]
+  -- ④  Assemble: F = log(x)/2 − log(x+1) + log(x+2)/2
+  have hF : HasDerivAt (fun t : ℝ => Real.log t / 2 - Real.log (t + 1) + Real.log (t + 2) / 2)
+      (1 / (2 * x) - 1 / (x + 1) + 1 / (2 * (x + 2))) x :=
+    (hL1.sub hL2).add hL3
+  -- ⑤  Algebra: 1/(2x) − 1/(x+1) + 1/(2(x+2)) = 1/(x(x+1)(x+2))
+  convert hF using 1
+  have h12  := mul_ne_zero hx hx1
+  have h123 := mul_ne_zero h12 hx2
+  field_simp [hx, hx1, hx2, h12, h123]
+  ring
