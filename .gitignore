@@ -1,2 +1,5 @@
-fricas_bridge/__pycache__/
+__pycache__/
+*.py[cod]
+*.egg-info/
+artifacts/
 fricas_bridge/output/
