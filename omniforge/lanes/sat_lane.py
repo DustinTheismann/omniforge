@@ -135,7 +135,7 @@ def run_sat_two_checker(
             except Exception:
                 pass
         return SatExecResult(
-            result=status if p.returncode == 0 else "ERROR",
+            result=status if p.returncode in (10, 20) else "ERROR",
             stdout=stdout,
             stderr=stderr,
             commandline=cmd,
@@ -170,17 +170,16 @@ def run_sat_two_checker(
     (proofcheck_dir / "drat-trim.json").write_text(chk_drat.to_json(), encoding="utf-8")
 
     # 3) Produce LRAT proof.
-    # CaDiCaL can emit LRAT via --lrat; send proof to stdout by passing '-' as output.
-    # We keep stderr/stdout separate from the earlier run; this is proof material only.
+    # CaDiCaL writes binary LRAT directly to a file path; passing the path
+    # avoids capturing binary data through a text-mode pipe (which would
+    # corrupt the proof for non-trivial inputs).
     lrat_cp = _run(
-        [str(cadical), f"--seed={seed}", "--lrat", str(cnf_path), "-"],
+        [str(cadical), f"--seed={seed}", "--lrat", str(cnf_path), str(lrat_path)],
         cwd=root,
         timeout=wall_seconds,
     )
-    lrat_text = lrat_cp.stdout or ""
-    lrat_path.write_text(lrat_text, encoding="utf-8")
 
-    if lrat_path.stat().st_size == 0:
+    if (not lrat_path.exists()) or lrat_path.stat().st_size == 0:
         return SatExecResult(
             result="ERROR",
             stdout=stdout,
@@ -192,11 +191,13 @@ def run_sat_two_checker(
             check_lrat=None,
         )
 
-    # 4) Verify LRAT with lrat-trim
+    # 4) Verify LRAT with lrat-trim.
+    # lrat-trim follows the DIMACS exit-code convention: 20 = UNSATISFIABLE/verified,
+    # 0 = unknown/error.  Do NOT check for returncode == 0 here.
     chk_lrat_cp = _run([str(lrat_trim), str(cnf_path), str(lrat_path)], cwd=root)
     chk_lrat = ProofCheck(
         checker="lrat-trim",
-        ok=(chk_lrat_cp.returncode == 0),
+        ok=(chk_lrat_cp.returncode == 20),
         returncode=chk_lrat_cp.returncode,
         stdout=chk_lrat_cp.stdout or "",
         stderr=chk_lrat_cp.stderr or "",
