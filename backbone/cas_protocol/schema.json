@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "backbone/cas_protocol/schema.json",
+  "title": "CAS Corpus Entry",
+  "description": "A single integration problem with multi-CAS results and Lean verification status.",
+  "type": "object",
+  "required": ["id", "source", "integrand", "variable", "discrepancy_class"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier (snake_case label)"
+    },
+    "source": {
+      "type": "string",
+      "description": "Human-readable source reference (e.g. 'Bronstein §1.1')"
+    },
+    "description": {
+      "type": "string"
+    },
+    "integrand": {
+      "type": "string",
+      "description": "Integrand expression in FriCAS/SPAD syntax"
+    },
+    "antiderivative": {
+      "type": "string",
+      "description": "Antiderivative in FriCAS/SPAD syntax"
+    },
+    "variable": {
+      "type": "string",
+      "default": "x"
+    },
+    "discrepancy_class": {
+      "type": "string",
+      "enum": ["A", "B", "C", "D"],
+      "description": "A=no restrictions, B=1 omitted hypothesis, C=2, D=3+"
+    },
+    "required_hypotheses": {
+      "type": "array",
+      "description": "Lean-style hypotheses omitted by FriCAS (e.g. 'x ≠ 0')",
+      "items": {
+        "type": "object",
+        "required": ["lean_expr", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "lean_expr": { "type": "string" },
+          "reason": {
+            "type": "string",
+            "enum": ["log_arg_nonzero", "denominator_nonzero", "log_arg_positive"]
+          }
+        }
+      },
+      "default": []
+    },
+    "cas_results": {
+      "type": "object",
+      "description": "CAS computation results keyed by CAS name",
+      "properties": {
+        "fricas":  { "$ref": "#/$defs/CASResult" },
+        "sympy":   { "$ref": "#/$defs/CASResult" },
+        "maxima":  { "$ref": "#/$defs/CASResult" }
+      },
+      "additionalProperties": { "$ref": "#/$defs/CASResult" }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "lean_theorem_name": { "type": "string" },
+        "lean_status": {
+          "type": "string",
+          "enum": ["proven", "sorry", "stub", "failed", "unknown"]
+        },
+        "proof_strategy": {
+          "type": "string",
+          "enum": ["elementary", "partial_fractions", "chain_rule", "manual", "unknown"]
+        }
+      }
+    },
+    "novelty": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "in_gr":     { "type": "boolean", "description": "Present in Gradshteyn & Ryzhik" },
+        "in_dlmf":   { "type": "boolean", "description": "Present in DLMF" },
+        "verdict":   { "type": "string", "enum": ["known", "novel", "unknown"] }
+      }
+    }
+  },
+  "$defs": {
+    "CASResult": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "antiderivative": { "type": ["string", "null"] },
+        "raw_output":     { "type": ["string", "null"] },
+        "elapsed_ms":     { "type": ["number", "null"] },
+        "cached":         { "type": "boolean" },
+        "error":          { "type": ["string", "null"] }
+      }
+    }
+  }
+}

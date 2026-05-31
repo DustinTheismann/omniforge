@@ -18,4 +18,8 @@ dependencies = [
 omniforge = "omniforge.cli:main"
 
 [tool.setuptools]
-packages = ["omniforge", "omniforge.lanes", "omniforge.eval", "omniforge.artifacts"]
+packages = [
+  "omniforge", "omniforge.lanes", "omniforge.eval", "omniforge.artifacts",
+  "backbone", "backbone.fricas_runtime", "backbone.cas_protocol",
+  "backbone.proof_template", "backbone.corpus", "backbone.tests",
+]

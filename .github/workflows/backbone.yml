@@ -1,0 +1,129 @@
+name: Backbone CI
+
+on:
+  push:
+    branches: ["main", "claude/**", "score-*"]
+    paths:
+      - "backbone/**"
+      - "pyproject.toml"
+      - ".github/workflows/backbone.yml"
+  pull_request:
+    paths:
+      - "backbone/**"
+      - "pyproject.toml"
+      - ".github/workflows/backbone.yml"
+
+jobs:
+  backbone-tests:
+    name: Corpus & Emitter Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package + test dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev]" || pip install -e . && pip install pytest jsonschema
+
+      - name: Run backbone tests
+        run: |
+          python -m pytest backbone/tests/ -v --tb=short
+
+  schema-lint:
+    name: JSON Schema lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install jsonschema
+        run: pip install jsonschema
+
+      - name: Validate schema files are well-formed JSON
+        run: |
+          python -c "
+          import json, pathlib, sys
+          schemas = list(pathlib.Path('backbone').rglob('*.json'))
+          errors = []
+          for p in schemas:
+              try:
+                  json.loads(p.read_text())
+                  print(f'OK  {p}')
+              except json.JSONDecodeError as e:
+                  errors.append(f'FAIL {p}: {e}')
+          if errors:
+              print('\n'.join(errors), file=sys.stderr)
+              sys.exit(1)
+          print(f'All {len(schemas)} schema files valid.')
+          "
+
+      - name: Validate bronstein.jsonl (line-by-line)
+        run: |
+          python -c "
+          import json, pathlib, sys
+          path = pathlib.Path('backbone/corpus/bronstein.jsonl')
+          schema = json.loads(pathlib.Path('backbone/cas_protocol/schema.json').read_text())
+          import jsonschema
+          validator = jsonschema.Draft202012Validator(schema)
+          errors = []
+          for i, line in enumerate(path.read_text().splitlines(), 1):
+              line = line.strip()
+              if not line:
+                  continue
+              try:
+                  entry = json.loads(line)
+              except json.JSONDecodeError as e:
+                  errors.append(f'Line {i}: JSON parse error: {e}')
+                  continue
+              errs = list(validator.iter_errors(entry))
+              for err in errs:
+                  errors.append(f'Line {i} ({entry.get(\"id\",\"?\")}): {err.message}')
+          if errors:
+              print('\n'.join(errors), file=sys.stderr)
+              sys.exit(1)
+          print('All corpus entries valid.')
+          "
+
+  normalize-smoke:
+    name: Normalize / Emitter smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package
+        run: pip install -e .
+
+      - name: Smoke-test emitter on full corpus
+        run: |
+          python -c "
+          import json, pathlib
+          from backbone.cas_protocol.lean_emitter import emit_lean_batch
+
+          entries = [
+              json.loads(l) for l in
+              pathlib.Path('backbone/corpus/bronstein.jsonl').read_text().splitlines()
+              if l.strip()
+          ]
+          src = emit_lean_batch(entries, 'BronsteinCorpus')
+          assert 'theorem risch_' in src
+          assert src.count('theorem risch_') == len(entries)
+          print(f'Emitted {len(entries)} theorems ({len(src)} chars). OK.')
+          "
