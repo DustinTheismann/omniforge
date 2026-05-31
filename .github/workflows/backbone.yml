@@ -151,6 +151,24 @@ jobs:
         run: |
           python -m pytest tests/test_fricas_to_lean.py -v --tb=short
 
+  proof-discharge-tests:
+    name: Proof discharge consistency check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package
+        run: pip install -e . && pip install pytest
+
+      - name: Run proof discharge tests
+        run: |
+          python -m pytest tests/test_proof_discharge.py -v --tb=short
+
   lean-to-fricas-tests:
     name: Lean→FriCAS translator tests
     runs-on: ubuntu-latest

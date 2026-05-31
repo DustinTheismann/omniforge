@@ -19,3 +19,7 @@ lean_lib FriCASTranslator where
 /-- FriCAS expression string → Lean 4 Expr parser. -/
 lean_lib FriCASParser where
   roots := #[`FriCASParser]
+
+/-- Step D — auto-discharged proofs for the four Class A Risch claims. -/
+lean_lib RischAutoDischarge where
+  roots := #[`RischAutoDischarge]
