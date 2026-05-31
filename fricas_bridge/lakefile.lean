@@ -11,3 +11,7 @@ require "leanprover-community" / "mathlib" @ git "v4.30.0"
     and the fricas_integrate pipeline. -/
 lean_lib FriCASBridge where
   roots := #[`RischVerification]
+
+/-- Lean 4 ↔ FriCAS expression translator (ProofForge.FriCAS namespace). -/
+lean_lib FriCASTranslator where
+  roots := #[`FriCASTranslator]

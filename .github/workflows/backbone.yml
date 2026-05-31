@@ -133,6 +133,24 @@ jobs:
         run: |
           python -m pytest tests/test_runpack_risch.py -v --tb=short
 
+  lean-to-fricas-tests:
+    name: Lean→FriCAS translator tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package
+        run: pip install -e . && pip install pytest
+
+      - name: Run translator tests
+        run: |
+          python -m pytest tests/test_lean_to_fricas.py -v --tb=short
+
   normalize-smoke:
     name: Normalize / Emitter smoke test
     runs-on: ubuntu-latest
