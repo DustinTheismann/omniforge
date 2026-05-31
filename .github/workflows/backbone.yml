@@ -115,6 +115,24 @@ jobs:
         run: |
           python fricas_bridge/proofforge_export.py --verify-only --check-hash
 
+  runpack-verify:
+    name: Runpack manifest integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package
+        run: pip install -e . && pip install jsonschema pytest
+
+      - name: Verify 9 Risch runpack manifests
+        run: |
+          python -m pytest tests/test_runpack_risch.py -v --tb=short
+
   normalize-smoke:
     name: Normalize / Emitter smoke test
     runs-on: ubuntu-latest

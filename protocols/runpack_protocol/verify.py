@@ -19,6 +19,7 @@ import hashlib
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
 
 import jsonschema
 
@@ -66,6 +67,7 @@ def verify_runpack(
     path: Path,
     *,
     check_artifacts_on_disk: bool = True,
+    root: Optional[Path] = None,
 ) -> VerifyResult:
     """
     Verify the runpack manifest at *path*.
@@ -105,7 +107,7 @@ def verify_runpack(
 
     # 3. Artifact hash checks
     if check_artifacts_on_disk:
-        base = path.parent
+        base = root if root is not None else path.parent
         for art in manifest.get("artifacts", []):
             art_path = base / art["path"] if not Path(art["path"]).is_absolute() else Path(art["path"])
             if art_path.exists():

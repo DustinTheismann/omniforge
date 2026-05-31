@@ -85,13 +85,14 @@ class RunpackBuilder:
         claim_id: str,
         schema_version: str = "0.1.0",
         tool_versions: Optional[dict] = None,
+        created_at: Optional[str] = None,
     ) -> None:
         self.claim_id      = claim_id
         self.schema_version= schema_version
         self._commands:  list[CommandRecord]  = []
         self._artifacts: list[ArtifactRecord] = []
         self._tool_versions = tool_versions or {}
-        self._created_at = datetime.now(timezone.utc).isoformat()
+        self._created_at = created_at or datetime.now(timezone.utc).isoformat()
 
     # ------------------------------------------------------------------
 
@@ -143,9 +144,10 @@ class RunpackBuilder:
         verification_result: str = "not_run",
         evidence_class: Optional[str] = None,
         claim_hash: Optional[str] = None,
+        runpack_id: Optional[str] = None,
     ) -> "Runpack":
         ts_ms = int(time.time() * 1000)
-        runpack_id = f"rp.{self.claim_id}.{ts_ms}"
+        runpack_id = runpack_id if runpack_id is not None else f"rp.{self.claim_id}.{ts_ms}"
 
         manifest: dict = {
             "runpack_id":       runpack_id,

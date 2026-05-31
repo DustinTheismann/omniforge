@@ -1,5 +1,6 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
-artifacts/
+artifacts/run_*/
+artifacts/manifest.json
 fricas_bridge/output/
