@@ -104,6 +104,42 @@ def extract_integrand(stmt: str) -> Optional[str]:
     return integrand if integrand else None
 
 
+def extract_antideriv(stmt: str) -> Optional[str]:
+    """
+    Extract the antiderivative lambda body from a HasDerivAt theorem statement.
+
+    For `HasDerivAt (fun t : ℝ => <body>) <integrand> x`, returns `<body>`.
+    For the equational `deriv (fun t => <body>) x = ...`, returns `<body>`.
+    Returns None for reference forms (e.g. `HasDerivAt antiderivative ...`).
+    """
+    # HasDerivAt (fun t : ℝ => <body>) ...
+    hd_pos = stmt.find("HasDerivAt ")
+    if hd_pos != -1:
+        pos = hd_pos + len("HasDerivAt ")
+        first_tok, _ = _next_token(stmt, pos)
+        # Reference form: first token is a plain identifier, not a lambda
+        if not first_tok.startswith("fun "):
+            return None
+        # first_tok is the content of the paren: "fun t : ℝ => <body>"
+        arrow = first_tok.find("=>")
+        if arrow == -1:
+            return None
+        return first_tok[arrow + 2:].strip()
+
+    # Equational: deriv (fun t => <body>) x = ...
+    if " deriv " in stmt or stmt.lstrip().startswith("deriv "):
+        start = stmt.find("(fun ")
+        if start == -1:
+            return None
+        paren_content, _ = _next_token(stmt, start)
+        arrow = paren_content.find("=>")
+        if arrow == -1:
+            return None
+        return paren_content[arrow + 2:].strip()
+
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Expression-level conversion
 # ---------------------------------------------------------------------------

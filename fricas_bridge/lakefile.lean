@@ -15,3 +15,7 @@ lean_lib FriCASBridge where
 /-- Lean 4 ↔ FriCAS expression translator (ProofForge.FriCAS namespace). -/
 lean_lib FriCASTranslator where
   roots := #[`FriCASTranslator]
+
+/-- FriCAS expression string → Lean 4 Expr parser. -/
+lean_lib FriCASParser where
+  roots := #[`FriCASParser]
