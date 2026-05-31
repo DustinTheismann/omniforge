@@ -97,6 +97,24 @@ jobs:
           print('All corpus entries valid.')
           "
 
+  proofforge-export-verify:
+    name: ProofForge export hash-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package
+        run: pip install -e . && pip install jsonschema
+
+      - name: Verify 9 Risch claims match current RischVerification.lean
+        run: |
+          python fricas_bridge/proofforge_export.py --verify-only --check-hash
+
   normalize-smoke:
     name: Normalize / Emitter smoke test
     runs-on: ubuntu-latest

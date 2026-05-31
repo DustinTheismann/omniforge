@@ -1,0 +1,66 @@
+{
+  "claim_id": "pf.integral.bronstein_001",
+  "claim_type": "symbolic_antiderivative",
+  "title": "Risch certificate — Bronstein §1.1 flagship (HasDerivAt)",
+  "natural_language": "The antiderivative of (2x·log(x²+1)+x³)/(x²+1) is log(x²+1)²/2 + x²/2 − log(x²+1)/2. No domain restriction: x²+1 > 0 everywhere. Formally verified by Lean 4 kernel.",
+  "source": {
+    "kind": "cas",
+    "name": "FriCAS",
+    "version": "1.3.11",
+    "source_hash": "f59297aacc476e61d4e6427a36e8aabc5cc1ba0d6e3b7a6dd07f766d4e533ed6"
+  },
+  "inputs": {
+    "integrand": "(2*x*log(x^2+1)+x^3)/(x^2+1)",
+    "variable": "x"
+  },
+  "outputs": {
+    "candidate_antiderivative": "log(x^2+1)^2/2 + x^2/2 - log(x^2+1)/2"
+  },
+  "formal_targets": [
+    {
+      "system": "Lean4",
+      "statement_text": "theorem risch_verified_bronstein_1 (x : ℝ) : HasDerivAt antiderivative (integrand x) x",
+      "statement_file": "fricas_bridge/RischVerification.lean",
+      "status": "proved",
+      "checker_version": "leanprover/lean4:v4.30.0"
+    }
+  ],
+  "assumptions": [],
+  "obligations": [
+    {
+      "obligation_id": "pf.integral.bronstein_001.formal",
+      "kind": "formal_derivative_check",
+      "checker": "Lean4",
+      "status": "passed",
+      "artifact": "fricas_bridge/RischVerification.lean"
+    }
+  ],
+  "checker_results": [
+    {
+      "checker": "Lean4",
+      "checker_version": "leanprover/lean4:v4.30.0",
+      "result": "passed",
+      "formal_verified": true,
+      "artifact": "fricas_bridge/RischVerification.lean",
+      "notes": "risch_verified_bronstein_1 typechecks against Mathlib v4.30.0; lake build passes in CI"
+    }
+  ],
+  "evidence_class": "E7_FORMALLY_VERIFIED",
+  "flags": [],
+  "artifacts": {
+    "lean_file": "fricas_bridge/RischVerification.lean",
+    "source_hash": "f59297aacc476e61d4e6427a36e8aabc5cc1ba0d6e3b7a6dd07f766d4e533ed6"
+  },
+  "metadata": {
+    "tags": [
+      "integration",
+      "risch",
+      "Class-A",
+      "bronstein",
+      "flagship"
+    ],
+    "notes": "First kernel-verified Risch certificate. Source: Bronstein §1.1.",
+    "proofforge_version": "0.1.0",
+    "generated_by": "fricas_bridge/proofforge_export.py"
+  }
+}

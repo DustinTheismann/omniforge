@@ -1,0 +1,88 @@
+{
+  "claim_id": "pf.integral.bronstein_009",
+  "claim_type": "symbolic_antiderivative",
+  "title": "Risch certificate — ∫ 1/(x(x+1)(x+2)) dx  [Class D — 3 implicit hypotheses]",
+  "natural_language": "The antiderivative of 1/(x(x+1)(x+2)) is log(x)/2 − log(x+1) + log(x+2)/2. Requires x≠0, x+1≠0, x+2≠0. FriCAS documents none of these. Scaling law: n-pole PFD yields exactly n omitted conditions.",
+  "source": {
+    "kind": "cas",
+    "name": "FriCAS",
+    "version": "1.3.11",
+    "source_hash": "f59297aacc476e61d4e6427a36e8aabc5cc1ba0d6e3b7a6dd07f766d4e533ed6"
+  },
+  "inputs": {
+    "integrand": "1/(x*(x+1)*(x+2))",
+    "variable": "x"
+  },
+  "outputs": {
+    "candidate_antiderivative": "log(x)/2 - log(x+1) + log(x+2)/2"
+  },
+  "formal_targets": [
+    {
+      "system": "Lean4",
+      "statement_text": "theorem risch_three_poles (x : ℝ) (hx : x ≠ 0) (hx1 : x + 1 ≠ 0) (hx2 : x + 2 ≠ 0) : HasDerivAt (fun t : ℝ => Real.log t / 2 - Real.log (t + 1) + Real.log (t + 2) / 2) (1 / (x * (x + 1) * (x + 2))) x",
+      "statement_file": "fricas_bridge/RischVerification.lean",
+      "status": "proved",
+      "checker_version": "leanprover/lean4:v4.30.0"
+    }
+  ],
+  "assumptions": [
+    {
+      "kind": "domain",
+      "statement": "x ≠ 0",
+      "required_by": "Real.log nonzero argument",
+      "discharged": false
+    },
+    {
+      "kind": "domain",
+      "statement": "x + 1 ≠ 0",
+      "required_by": "Real.log nonzero argument",
+      "discharged": false
+    },
+    {
+      "kind": "domain",
+      "statement": "x + 2 ≠ 0",
+      "required_by": "Real.log nonzero argument",
+      "discharged": false
+    }
+  ],
+  "obligations": [
+    {
+      "obligation_id": "pf.integral.bronstein_009.formal",
+      "kind": "formal_derivative_check",
+      "checker": "Lean4",
+      "status": "passed",
+      "artifact": "fricas_bridge/RischVerification.lean"
+    }
+  ],
+  "checker_results": [
+    {
+      "checker": "Lean4",
+      "checker_version": "leanprover/lean4:v4.30.0",
+      "result": "passed",
+      "formal_verified": true,
+      "artifact": "fricas_bridge/RischVerification.lean",
+      "notes": "risch_three_poles typechecks against Mathlib v4.30.0; lake build passes in CI"
+    }
+  ],
+  "evidence_class": "E7_FORMALLY_VERIFIED",
+  "flags": [
+    "REQUIRES_ASSUMPTIONS"
+  ],
+  "artifacts": {
+    "lean_file": "fricas_bridge/RischVerification.lean",
+    "source_hash": "f59297aacc476e61d4e6427a36e8aabc5cc1ba0d6e3b7a6dd07f766d4e533ed6"
+  },
+  "metadata": {
+    "tags": [
+      "integration",
+      "risch",
+      "Class-D",
+      "three-poles",
+      "discrepancy",
+      "scaling-law"
+    ],
+    "notes": "Maximum discrepancy class. 3 poles → 3 omitted conditions.",
+    "proofforge_version": "0.1.0",
+    "generated_by": "fricas_bridge/proofforge_export.py"
+  }
+}

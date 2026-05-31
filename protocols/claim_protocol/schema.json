@@ -123,11 +123,12 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "created_at":   { "type": "string" },
-        "updated_at":   { "type": "string" },
+        "created_at":         { "type": "string" },
+        "updated_at":         { "type": "string" },
         "proofforge_version": { "type": "string" },
-        "tags":         { "type": "array", "items": { "type": "string" } },
-        "notes":        { "type": "string" }
+        "generated_by":       { "type": "string" },
+        "tags":               { "type": "array", "items": { "type": "string" } },
+        "notes":              { "type": "string" }
       }
     }
   },
