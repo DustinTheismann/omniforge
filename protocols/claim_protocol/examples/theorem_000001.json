@@ -1,0 +1,45 @@
+{
+  "claim_id": "pf.theorem.000001",
+  "claim_type": "theorem_statement",
+  "title": "Square root of 2 is irrational",
+  "natural_language": "√2 is irrational: there do not exist integers p, q with q ≠ 0 such that (p/q)² = 2.",
+  "source": {
+    "kind": "human",
+    "name": "Classical mathematics"
+  },
+  "inputs": {},
+  "outputs": {
+    "statement": "¬ ∃ (p q : ℤ), q ≠ 0 ∧ p^2 = 2 * q^2"
+  },
+  "formal_targets": [
+    {
+      "system": "Lean4",
+      "statement_text": "theorem sqrt2_irrational : Irrational (Real.sqrt 2)",
+      "status": "proved"
+    }
+  ],
+  "assumptions": [],
+  "obligations": [
+    {
+      "obligation_id": "pf.theorem.000001.formal",
+      "kind": "formal_theorem",
+      "checker": "Lean4",
+      "status": "passed",
+      "artifact": "https://leanprover-community.github.io/mathlib4_docs/Mathlib/NumberTheory/Irrational.html"
+    }
+  ],
+  "checker_results": [
+    {
+      "checker": "Lean4",
+      "result": "passed",
+      "formal_verified": true,
+      "notes": "Available in Mathlib as Nat.Prime.irrational_sqrt"
+    }
+  ],
+  "evidence_class": "E7_FORMALLY_VERIFIED",
+  "flags": [],
+  "artifacts": {},
+  "metadata": {
+    "tags": ["number-theory", "irrationality", "mathlib-available"]
+  }
+}

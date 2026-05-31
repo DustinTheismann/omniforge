@@ -1,0 +1,183 @@
+# ProofForge Ω Evidence Ladder
+# Each class is a rung. A claim rises as stronger evidence accumulates.
+# EX_REFUTED overrides ALL positive classes when a counterexample or
+# failed reproduction is found — it cannot be reversed except by a new proof.
+
+schema_version: "0.1.0"
+
+classes:
+  - code: "E0_RAW_CLAIM"
+    level: 0
+    label: "Raw Claim"
+    description: >
+      Prose, assertion, model output, or paper statement with no independent support.
+      This is the default assigned when a claim enters the system.
+    allows_upgrade: true
+    requires: []
+
+  - code: "E1_SOURCED"
+    level: 1
+    label: "Sourced"
+    description: >
+      Source or citation is known and recorded. The claim is traceable to an origin,
+      but no independent check has been performed.
+    allows_upgrade: true
+    requires:
+      - "source.kind is set"
+      - "source.name is set"
+
+  - code: "E2_PARSED"
+    level: 2
+    label: "Parsed"
+    description: >
+      Claim has been converted into a typed, machine-readable object conforming to
+      the claim protocol schema. Inputs and outputs are structured.
+    allows_upgrade: true
+    requires:
+      - "claim validates against protocols/claim_protocol/schema.json"
+
+  - code: "E3_EXECUTABLE"
+    level: 3
+    label: "Executable"
+    description: >
+      Claim has an associated command, test, theorem file, notebook, or checker route
+      that can be run. The runpack manifest exists.
+    allows_upgrade: true
+    requires:
+      - "at least one obligation with status != pending"
+      - "runpack manifest created"
+
+  - code: "E4_REPRODUCED"
+    level: 4
+    label: "Reproduced"
+    description: >
+      The original result has been reproduced in a controlled, independent environment.
+      Runpack replay succeeds with matching artifact hashes.
+    allows_upgrade: true
+    requires:
+      - "runpack verification_result == passed"
+      - "output artifact hashes match original"
+
+  - code: "E5_NUMERICALLY_SUPPORTED"
+    level: 5
+    label: "Numerically Supported"
+    description: >
+      Random tests, property-based tests, interval arithmetic checks, or Monte Carlo
+      simulation support the claim. Does not constitute a proof.
+    allows_upgrade: true
+    requires:
+      - "at least one checker_result with result in [passed, supported]"
+      - "checker.kind in [property_test, interval_arithmetic, monte_carlo, differential_test]"
+
+  - code: "E6_SYMBOLICALLY_SUPPORTED"
+    level: 6
+    label: "Symbolically Supported"
+    description: >
+      A CAS system (FriCAS, SymPy, Maxima) or SMT solver supports the claim.
+      Does not constitute a formal proof.
+    allows_upgrade: true
+    requires:
+      - "at least one checker_result with result in [passed, supported]"
+      - "checker in [fricas, sympy, maxima, sage, z3, cvc5]"
+
+  - code: "E7_FORMALLY_VERIFIED"
+    level: 7
+    label: "Formally Verified"
+    description: >
+      A proof-assistant kernel (Lean 4, Coq/Rocq, Isabelle/HOL, Agda) has accepted
+      a formal proof of the claim. This is the gold standard for mathematical claims.
+    allows_upgrade: true
+    requires:
+      - "at least one checker_result with formal_verified == true"
+      - "checker_result.result == passed"
+      - "formal_target.status == proved"
+
+  - code: "E8_CROSS_VERIFIED"
+    level: 8
+    label: "Cross-Verified"
+    description: >
+      Two or more independent checker families (e.g. Lean + SymPy, or Lean + CaDiCaL)
+      have independently supported the claim.
+    allows_upgrade: true
+    requires:
+      - "at least 2 distinct checker families with result in [passed, supported, formal_verified]"
+
+  - code: "E9_ADVERSARIALLY_HARDENED"
+    level: 9
+    label: "Adversarially Hardened"
+    description: >
+      Counterexample search, fuzzing, mutation testing, and alternate checker families
+      have all failed to refute the claim. No CHECKER_DISAGREEMENT flags remain.
+    allows_upgrade: true
+    requires:
+      - "E8 requirements met"
+      - "no CHECKER_DISAGREEMENT flag"
+      - "at least one falsifier run with no counterexample found"
+
+  - code: "E10_FIELD_VALIDATED"
+    level: 10
+    label: "Field Validated"
+    description: >
+      The claim has been accepted upstream (Mathlib PR merged, upstream bug fixed,
+      paper peer-reviewed, or independently adopted by a major project).
+    allows_upgrade: false
+    requires:
+      - "E7 or higher"
+      - "external validation evidence"
+
+special:
+  - code: "EX_REFUTED"
+    label: "Refuted"
+    description: >
+      A counterexample, failed reproduction, invalid proof, or contradicting evidence
+      was found. EX overrides any positive evidence class. The claim cannot be upgraded
+      until the refutation is explicitly resolved and a new evidence chain is established.
+    overrides_all: true
+    triggered_by:
+      - "counterexample found"
+      - "runpack replay failure with hash mismatch"
+      - "formal_target.status == failed"
+      - "CHECKER_DISAGREEMENT involving formal checker"
+
+# Upgrade rules
+upgrade_rules:
+  - from: "E0_RAW_CLAIM"
+    to:   "E1_SOURCED"
+    gate: "source fields populated"
+
+  - from: "E1_SOURCED"
+    to:   "E2_PARSED"
+    gate: "claim validates against schema"
+
+  - from: "E2_PARSED"
+    to:   "E3_EXECUTABLE"
+    gate: "runpack created, at least one obligation run"
+
+  - from: "E3_EXECUTABLE"
+    to:   "E4_REPRODUCED"
+    gate: "runpack.verification_result == passed"
+
+  - from: "E4_REPRODUCED"
+    to:   "E5_NUMERICALLY_SUPPORTED"
+    gate: "numeric checker result passed"
+
+  - from: "E5_NUMERICALLY_SUPPORTED"
+    to:   "E6_SYMBOLICALLY_SUPPORTED"
+    gate: "CAS or SMT checker passed"
+
+  - from: "E6_SYMBOLICALLY_SUPPORTED"
+    to:   "E7_FORMALLY_VERIFIED"
+    gate: "formal_verified == true AND formal_target.status == proved"
+    note: "Cannot be bypassed — formal_verified must be set by a proof kernel, not an LLM."
+
+  - from: "E7_FORMALLY_VERIFIED"
+    to:   "E8_CROSS_VERIFIED"
+    gate: "2+ independent checker families passed"
+
+  - from: "E8_CROSS_VERIFIED"
+    to:   "E9_ADVERSARIALLY_HARDENED"
+    gate: "falsifier run found no counterexample AND no CHECKER_DISAGREEMENT"
+
+  - from: "E9_ADVERSARIALLY_HARDENED"
+    to:   "E10_FIELD_VALIDATED"
+    gate: "external validation documented"

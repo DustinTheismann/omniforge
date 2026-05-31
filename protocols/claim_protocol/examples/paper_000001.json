@@ -1,0 +1,48 @@
+{
+  "claim_id": "pf.paper.000001",
+  "claim_type": "paper_claim",
+  "title": "AlphaEvolve-style claim: discovered a 4×4 matrix multiplication with 47 scalar multiplications",
+  "natural_language": "A discovery system found a 4×4 matrix multiplication algorithm using exactly 47 scalar multiplications, improving on Strassen-derived methods.",
+  "source": {
+    "kind": "paper",
+    "name": "Fawzi et al. 2022 (AlphaTensor)",
+    "doi": "10.1038/s41586-022-05172-4"
+  },
+  "inputs": {
+    "problem": "4x4 matrix multiplication over Z/2Z",
+    "metric": "number of scalar multiplications"
+  },
+  "outputs": {
+    "algorithm_description": "47-multiplication 4x4 matrix mult decomposition",
+    "claimed_improvement": "reduces from 49 (nested Strassen) to 47"
+  },
+  "formal_targets": [],
+  "assumptions": [
+    {
+      "kind": "hypothesis",
+      "statement": "Correctness holds over Z/2Z; behaviour over reals requires separate verification",
+      "discharged": false
+    }
+  ],
+  "obligations": [
+    {
+      "obligation_id": "pf.paper.000001.correctness",
+      "kind": "formal_equivalence",
+      "checker": "pytest",
+      "status": "pending"
+    },
+    {
+      "obligation_id": "pf.paper.000001.repro",
+      "kind": "reproduction",
+      "checker": "docker_repro",
+      "status": "pending"
+    }
+  ],
+  "checker_results": [],
+  "evidence_class": "E1_SOURCED",
+  "flags": ["HUMAN_REVIEW_REQUIRED"],
+  "artifacts": {},
+  "metadata": {
+    "tags": ["matrix-multiplication", "AlphaTensor", "algorithm-discovery"]
+  }
+}

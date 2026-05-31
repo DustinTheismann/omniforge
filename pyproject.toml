@@ -22,4 +22,6 @@ packages = [
   "omniforge", "omniforge.lanes", "omniforge.eval", "omniforge.artifacts",
   "backbone", "backbone.fricas_runtime", "backbone.cas_protocol",
   "backbone.proof_template", "backbone.corpus", "backbone.tests",
+  "protocols", "protocols.claim_protocol", "protocols.runpack_protocol",
+  "protocols.evidence_protocol", "protocols.obligation_protocol",
 ]
