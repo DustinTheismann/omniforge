@@ -5,11 +5,17 @@ on:
     branches: ["main", "claude/**", "score-*"]
     paths:
       - "backbone/**"
+      - "fricas_bridge/**"
+      - "protocols/**"
+      - "tests/**"
       - "pyproject.toml"
       - ".github/workflows/backbone.yml"
   pull_request:
     paths:
       - "backbone/**"
+      - "fricas_bridge/**"
+      - "protocols/**"
+      - "tests/**"
       - "pyproject.toml"
       - ".github/workflows/backbone.yml"
 
@@ -168,6 +174,28 @@ jobs:
       - name: Run proof discharge tests
         run: |
           python -m pytest tests/test_proof_discharge.py -v --tb=short
+
+  offline-cache-tests:
+    name: Offline FriCAS cache integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package
+        run: pip install -e . && pip install pytest
+
+      - name: Verify offline cache is in sync with the corpus
+        run: |
+          python -m fricas_bridge.offline_cache --verify
+
+      - name: Run offline cache tests
+        run: |
+          python -m pytest tests/test_offline_cache.py -v --tb=short
 
   lean-to-fricas-tests:
     name: Lean→FriCAS translator tests
