@@ -65,3 +65,7 @@ jobs:
           echo "  risch_simple_log            ∫ x/(x²+1) dx"
           echo "  risch_arctan                ∫ 2x/(1+x⁴) dx"
           echo "  risch_partial_fractions     ∫ (x+1)/(x(x+2)) dx  [x≠0, x≠-2]"
+          echo ""
+          echo "Scaling-law theorem (Tier 1.4):"
+          echo "  partial_fraction_hasDerivAt  general n-pole Σ cᵢ·log(x-aᵢ) derivative"
+          echo "  partial_fraction_one_pole    n=1 specialisation"

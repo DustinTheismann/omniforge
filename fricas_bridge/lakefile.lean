@@ -23,3 +23,7 @@ lean_lib FriCASParser where
 /-- Step D — auto-discharged proofs for the four Class A Risch claims. -/
 lean_lib RischAutoDischarge where
   roots := #[`RischAutoDischarge]
+
+/-- Tier 1.4 — the general n-pole partial-fraction scaling-law theorem. -/
+lean_lib PartialFractionHasDerivAt where
+  roots := #[`PartialFractionHasDerivAt]

@@ -49,120 +49,80 @@ class ConcreteInstance:
     proof_script: str
 
 
-_GENERAL_THEOREM = """\
-/-- General partial-fraction HasDerivAt theorem.
-    For any n real poles with simple-pole residues, the antiderivative is
-    a sum of weighted real logarithms. -/
-theorem partial_fraction_hasDerivAt
-    (n : ℕ) (poles : Fin n → ℝ) (coeffs : Fin n → ℝ)
-    (x : ℝ) (h_ne : ∀ i, x - poles i ≠ 0) :
-    HasDerivAt
-      (fun x : ℝ => ∑ i, coeffs i * Real.log (x - poles i))
-      (∑ i, coeffs i / (x - poles i))
-      x := by
-  have step : ∀ i, HasDerivAt (fun x => coeffs i * Real.log (x - poles i))
-                               (coeffs i / (x - poles i)) x := by
-    intro i
-    have hd := (hasDerivAt_id x |>.sub (hasDerivAt_const x (poles i))).log (h_ne i)
-    simpa [id, mul_div_assoc] using hd.const_mul (coeffs i)
-  simpa using HasDerivAt.sum (fun i _ => step i)
-"""
+# The committed, kernel-checked Lean file is the single source of truth.
+# scaling_theorem.py reflects it rather than carrying a separate proof string,
+# so the generator can never drift from what the Lean toolchain actually accepts.
+_COMMITTED_LEAN = Path(__file__).resolve().parent / "PartialFractionHasDerivAt.lean"
 
 _GENERAL_PROOF_SKETCH = (
-    "Induction on n; base case trivial; "
-    "inductive step uses HasDerivAt.add and hasDerivAt_log."
+    "Per-term: hasDerivAt_id |> sub_const |> HasDerivAt.log |> const_mul; "
+    "combined with HasDerivAt.sum over Finset.univ."
 )
+
+
+def _committed_general_theorem() -> str:
+    """Extract the `partial_fraction_hasDerivAt` theorem block from the
+    committed Lean file (the kernel-checked source of truth)."""
+    text = _COMMITTED_LEAN.read_text()
+    lines = text.splitlines()
+    out: list[str] = []
+    collecting = False
+    for line in lines:
+        if line.startswith("theorem partial_fraction_hasDerivAt"):
+            collecting = True
+        if collecting:
+            # Stop at the start of the next top-level theorem/end.
+            if out and (line.startswith("theorem ") or line.startswith("/--")
+                        or line == "end"):
+                break
+            out.append(line)
+    return "\n".join(out).rstrip() + "\n"
 
 
 def build_general_theorem() -> GeneralPFDTheorem:
     return GeneralPFDTheorem(
-        statement=_GENERAL_THEOREM,
+        statement=_committed_general_theorem(),
         proof_sketch=_GENERAL_PROOF_SKETCH,
     )
 
 
-def _concrete_statement(n: int, poles: list[str], coeffs: list[str]) -> str:
-    """Build the Lean statement for a concrete n-pole instance."""
-    pole_binders = " ".join(f"({p} : ℝ)" for p in poles)
-    coeff_binders = " ".join(f"({c} : ℝ)" for c in coeffs)
-    hyp_binders = " ".join(
-        f"(h{p} : x - {p} ≠ 0)" for p in poles
-    )
-    antideriv_terms = " + ".join(
-        f"{c} * Real.log (x - {p})" for c, p in zip(coeffs, poles)
-    )
-    deriv_terms = " + ".join(
-        f"{c} / (x - {p})" for c, p in zip(coeffs, poles)
-    )
-    return (
-        f"theorem pfd_{n}_poles "
-        f"(x : ℝ) {pole_binders} {coeff_binders} {hyp_binders} :\n"
-        f"    HasDerivAt (fun x : ℝ => {antideriv_terms})\n"
-        f"               ({deriv_terms}) x"
-    )
-
-
-def _concrete_proof(n: int, poles: list[str]) -> str:
-    """Build the Lean proof for a concrete n-pole instance."""
-    if n == 1:
-        return (
-            " := by\n"
-            "  have h := (hasDerivAt_id x |>.sub (hasDerivAt_const x a)).log ha\n"
-            "  simpa [id, mul_div_assoc] using h.const_mul c1"
-        )
-    hyp_names = " ".join(f"h{p}" for p in poles)
-    return (
-        f" := by\n"
-        f"  apply partial_fraction_hasDerivAt\n"
-        f"  intro i; fin_cases i <;> simp [{hyp_names}]"
-    )
-
-
 def build_concrete_instances(max_poles: int = 4) -> list[ConcreteInstance]:
-    """Build concrete instantiations for 1 through max_poles poles."""
-    instances: list[ConcreteInstance] = []
-    pole_names_all = ["a", "b", "c", "d"]
-    coeff_names_all = ["c1", "c2", "c3", "c4"]
+    """
+    Return the kernel-checked concrete specialisations present in the committed
+    Lean file (currently `partial_fraction_one_pole`, the n = 1 instance).
 
-    for n in range(1, max_poles + 1):
-        poles = pole_names_all[:n]
-        coeffs = coeff_names_all[:n]
-        stmt = _concrete_statement(n, poles, coeffs)
-        proof = _concrete_proof(n, poles)
+    Unlike the earlier version, this no longer fabricates unchecked `pfd_N_poles`
+    theorem text: it reflects only theorems that the Lean toolchain actually
+    elaborates in CI.  Add a new specialisation to PartialFractionHasDerivAt.lean
+    (and let CI accept it) before it appears here.
+    """
+    text = _COMMITTED_LEAN.read_text()
+    instances: list[ConcreteInstance] = []
+
+    # n = 1 specialisation, if present in the committed file.
+    if "theorem partial_fraction_one_pole" in text:
         instances.append(ConcreteInstance(
-            n_poles=n,
-            poles=poles,
-            coeffs=coeffs,
-            lean_statement=stmt,
-            proof_script=proof,
+            n_poles=1,
+            poles=["a"],
+            coeffs=["c"],
+            lean_statement="theorem partial_fraction_one_pole",
+            proof_script="derived from partial_fraction_hasDerivAt (n := 1)",
         ))
 
     return instances
 
 
 def write_pfd_lean_file(path: Optional[str] = None) -> Path:
-    """Write the general theorem + concrete instances as a Lean file."""
-    dest = Path(path) if path else Path(__file__).parent / "PartialFractionHasDerivAt.lean"
+    """
+    Write the kernel-checked scaling-law Lean file.
 
-    general = build_general_theorem()
-    concrete = build_concrete_instances()
-
-    parts = [
-        "-- Auto-generated by ProofForge Ω fricas_bridge/scaling_theorem.py",
-        "-- Tier 1.4 — Scaling-law theorem: general n-pole HasDerivAt",
-        "",
-        "import Mathlib.Analysis.SpecialFunctions.Log.Deriv",
-        "import Mathlib.Analysis.Calculus.Deriv.Basic",
-        "",
-        "open Real",
-        "",
-        general.statement,
-        "",
-        "-- Concrete instances",
-    ]
-    for inst in concrete:
-        parts.append(f"\n-- {inst.n_poles}-pole instance")
-        parts.append(inst.lean_statement + inst.proof_script)
-
-    dest.write_text("\n".join(parts))
+    If a path is given, the committed PartialFractionHasDerivAt.lean is copied
+    there verbatim, so any emitted artifact is byte-identical to what CI checks.
+    With no path, returns the committed file's location without rewriting it
+    (it is hand-maintained as the source of truth).
+    """
+    if path is None:
+        return _COMMITTED_LEAN
+    dest = Path(path)
+    dest.write_text(_COMMITTED_LEAN.read_text())
     return dest
