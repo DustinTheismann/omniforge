@@ -111,10 +111,12 @@ def test_e2e_coq_theorem_007():
 # ---------------------------------------------------------------------------
 
 def test_e2e_isabelle_theorem_007():
+    # Isabelle is a CANDIDATE emitter (not kernel-checked); its ln domain is
+    # principal-branch (0<x), matching Coq.
     p = emit_isabelle(_CLAIM_007_ID)
     assert "isabelle_autodischarge_007" in p.theorem_name
     assert "has_real_derivative" in p.statement
-    assert "x ≠ 0" in p.hypotheses[0]
+    assert "x > 0" in p.hypotheses[0]
 
 
 # ---------------------------------------------------------------------------

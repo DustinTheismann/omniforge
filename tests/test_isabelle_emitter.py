@@ -26,7 +26,9 @@ def test_emit_isabelle_returns_dataclass():
 def test_emit_007_has_hypothesis():
     p = emit_isabelle("pf.integral.bronstein_007")
     assert len(p.hypotheses) == 1
-    assert "x ≠ 0" in p.hypotheses[0]
+    # Isabelle/HOL ln is principal-branch (DERIV_ln needs 0<x), not x≠0.
+    assert "x > 0" in p.hypotheses[0]
+    assert "≠" not in p.hypotheses[0]
 
 
 def test_emit_007_statement_has_ln():
@@ -93,3 +95,20 @@ def test_write_isabelle_file_contains_all_lemmas():
         text = out.read_text()
         for suffix in ["001", "003", "004", "005", "006", "007", "008", "009"]:
             assert f"isabelle_autodischarge_{suffix}" in text
+
+
+def test_isabelle_output_marked_not_kernel_checked():
+    """The Isabelle theory must NOT claim to be verified — there is no Isabelle
+    kernel in CI, so over-claiming would be dishonest."""
+    with tempfile.TemporaryDirectory() as td:
+        out = write_isabelle_file(str(Path(td) / "test.thy"))
+        text = out.read_text()
+        assert "NOT KERNEL-CHECKED" in text
+
+
+def test_log_cases_use_positivity_not_nonzero():
+    """All log-bearing claims assume 0<arg (principal branch), never arg≠0."""
+    for suffix in ["005", "007", "008", "009"]:
+        p = emit_isabelle(f"pf.integral.bronstein_{suffix}")
+        for h in p.hypotheses:
+            assert ">" in h and "≠" not in h, f"{p.theorem_name}: {h!r}"
