@@ -2,8 +2,10 @@
 -- DO NOT EDIT BY HAND — regenerate with:
 --   python fricas_bridge/proof_discharger.py --generate
 --
--- Four Class A Risch–Bronstein HasDerivAt theorems, auto-discharged.
--- Each proof is produced mechanically from the FriCAS antiderivative shape.
+-- All nine Risch–Bronstein HasDerivAt theorems, auto-discharged across the
+-- four discrepancy classes (A: no hypothesis · B: one · C: two · D: three).
+-- Each proof is produced mechanically from the FriCAS antiderivative shape and
+-- reproduces a pattern already kernel-verified in RischVerification.lean.
 import Mathlib.Analysis.SpecialFunctions.Log.Deriv
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
 import Mathlib.Tactic
@@ -70,6 +72,25 @@ theorem autodischarge_004 (x : ℝ) :
   field_simp [h1.ne', h2.ne']
   ring
 
+theorem autodischarge_005 (x : ℝ) (hx : x ≠ 0) (hx2 : x + 2 ≠ 0) :
+    HasDerivAt (fun t : ℝ => Real.log t / 2 + Real.log (t + 2) / 2)
+               ((x + 1) / (x * (x + 2))) x := by
+  have hL1 : HasDerivAt (fun t : ℝ => Real.log t / 2) (1 / (2 * x)) x := by
+    have h := ((hasDerivAt_id x).log hx).div_const 2
+    convert h using 1
+    field_simp [hx]
+  have hg2 : HasDerivAt (fun t : ℝ => t + 2) 1 x := by
+    have h := (hasDerivAt_id x).add (hasDerivAt_const x (2 : ℝ))
+    simpa using h
+  have hL2 : HasDerivAt (fun t : ℝ => Real.log (t + 2) / 2) (1 / (2 * (x + 2))) x := by
+    have h := (hg2.log hx2).div_const 2
+    convert h using 1
+    field_simp [hx2]
+  have hF := hL1.add hL2
+  convert hF using 1
+  field_simp [hx, hx2, mul_ne_zero hx hx2]
+  ring
+
 theorem autodischarge_006 (x : ℝ) :
     HasDerivAt (fun t : ℝ => Real.arctan (t + 1))
                (1 / (x ^ 2 + 2 * x + 2)) x := by
@@ -80,5 +101,46 @@ theorem autodischarge_006 (x : ℝ) :
   have h1 : (0 : ℝ) < 1 + (x + 1) ^ 2 := by positivity
   have h2 : (0 : ℝ) < x ^ 2 + 2 * x + 2 := by nlinarith [sq_nonneg (x + 1)]
   field_simp [h1.ne', h2.ne']
+  ring
+
+theorem autodischarge_007 (x : ℝ) (hx : x ≠ 0) :
+    HasDerivAt (fun t : ℝ => Real.log t)
+               (1 / x) x := by
+  have h := (hasDerivAt_id x).log hx
+  simpa [id] using h
+
+theorem autodischarge_008 (x : ℝ) (hne : (x ^ 2 - 4 : ℝ) ≠ 0) :
+    HasDerivAt (fun t : ℝ => Real.log (t ^ 2 - 4) / 2)
+               (x / (x ^ 2 - 4)) x := by
+  have hg : HasDerivAt (fun t : ℝ => t ^ 2 - 4) (2 * x) x := by
+    have h := (hasDerivAt_pow 2 x).sub (hasDerivAt_const x (4 : ℝ))
+    simpa [pow_one] using h
+  have h := (hg.log hne).div_const 2
+  convert h using 1
+  field_simp [hne]
+
+theorem autodischarge_009 (x : ℝ) (hx : x ≠ 0) (hx1 : x + 1 ≠ 0) (hx2 : x + 2 ≠ 0) :
+    HasDerivAt (fun t : ℝ => Real.log t / 2 - Real.log (t + 1) + Real.log (t + 2) / 2)
+               (1 / (x * (x + 1) * (x + 2))) x := by
+  have hL1 : HasDerivAt (fun t : ℝ => Real.log t / 2) (1 / (2 * x)) x := by
+    have h := ((hasDerivAt_id x).log hx).div_const 2
+    convert h using 1; field_simp [hx]
+  have hg1 : HasDerivAt (fun t : ℝ => t + 1) 1 x := by
+    simpa using (hasDerivAt_id x).add (hasDerivAt_const x (1 : ℝ))
+  have hL2 : HasDerivAt (fun t : ℝ => Real.log (t + 1)) (1 / (x + 1)) x := by
+    have h := hg1.log hx1
+    convert h using 1; field_simp [hx1]
+  have hg2 : HasDerivAt (fun t : ℝ => t + 2) 1 x := by
+    simpa using (hasDerivAt_id x).add (hasDerivAt_const x (2 : ℝ))
+  have hL3 : HasDerivAt (fun t : ℝ => Real.log (t + 2) / 2) (1 / (2 * (x + 2))) x := by
+    have h := (hg2.log hx2).div_const 2
+    convert h using 1; field_simp [hx2]
+  have hF : HasDerivAt (fun t : ℝ => Real.log t / 2 - Real.log (t + 1) + Real.log (t + 2) / 2)
+      (1 / (2 * x) - 1 / (x + 1) + 1 / (2 * (x + 2))) x :=
+    (hL1.sub hL2).add hL3
+  convert hF using 1
+  have h12  := mul_ne_zero hx hx1
+  have h123 := mul_ne_zero h12 hx2
+  field_simp [hx, hx1, hx2, h12, h123]
   ring
 end
