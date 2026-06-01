@@ -55,7 +55,11 @@ CACHE_DIFF: dict[str, str] = {
     _key("log(x)/2+log(x+2)/2", "x"):                "(x+1)/(x*(x+2))",
     _key("log(x)/2-log(x+1)+log(x+2)/2", "x"):      "1/(x*(x+1)*(x+2))",
     _key("log(x^2-4)/2", "x"):                       "x/(x^2-4)",
-    _key("log(x^2+1)^2/2+x^2/2-log(x^2+1)/2", "x"): "2*x*log(x^2+1)",
+    _key("log(x^2+1)^2/2+x^2/2-log(x^2+1)/2", "x"): "(2*x*log(x^2+1)+x^3)/(x^2+1)",
+    # atan variants (FriCAS antiderivatives use atan not Real.arctan)
+    _key("atan(x)", "x"):                            "1/(1+x^2)",
+    _key("atan(x+1)", "x"):                          "1/(x^2+2*x+2)",
+    _key("atan(x^2)", "x"):                          "2*x/(1+x^4)",
     # general identities
     _key("exp(x)", "x"):                             "exp(x)",
     _key("sin(x)", "x"):                             "cos(x)",
@@ -115,9 +119,15 @@ def fricas_differentiate(
     """
     Return D(expr, var) using the offline cache.
 
+    Tries the expression as-is, then with spaces stripped, for robustness
+    against formatting differences between the cache keys and FriCAS output.
     Raises KeyError when strict=True and the key is not in the cache.
     """
     result = CACHE_DIFF.get(_key(expr, var))
+    if result is None:
+        # Retry with whitespace stripped (FriCAS output may have spaces)
+        stripped = expr.replace(" ", "")
+        result = CACHE_DIFF.get(_key(stripped, var))
     if result is None:
         if strict:
             raise KeyError(f"fricas_differentiate: no cache entry for {expr!r} wrt {var!r}")
