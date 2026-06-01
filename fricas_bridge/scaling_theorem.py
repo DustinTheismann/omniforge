@@ -1,0 +1,168 @@
+"""
+Tier 1.4 — Scaling-law theorem: general partial-fraction HasDerivAt pattern.
+
+For a rational function with simple real poles a_1, …, a_n and partial
+fraction coefficients c_1, …, c_n:
+
+   ∫ Σ c_i/(x - a_i) dx  =  Σ c_i · log|x - a_i|
+
+The corresponding HasDerivAt theorem:
+
+   theorem partial_fraction_hasDerivAt
+     (n : ℕ) (poles : Fin n → ℝ) (coeffs : Fin n → ℝ)
+     (x : ℝ) (h : ∀ i, x ≠ poles i) :
+     HasDerivAt (fun x => ∑ i, coeffs i * Real.log (x - poles i))
+                (∑ i, coeffs i / (x - poles i)) x
+
+This module generates:
+  1. The Lean statement of the general theorem
+  2. Concrete instantiations for 1, 2, 3, 4 poles
+  3. A proof sketch (the full proof is by induction on n + simp)
+
+Public API
+----------
+GeneralPFDTheorem               dataclass
+ConcreteInstance                dataclass
+build_general_theorem()         → GeneralPFDTheorem
+build_concrete_instances(max_poles) → list[ConcreteInstance]
+write_pfd_lean_file(path)       → Path
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Optional
+
+
+@dataclass
+class GeneralPFDTheorem:
+    statement: str    # the ∀ n theorem
+    proof_sketch: str
+
+
+@dataclass
+class ConcreteInstance:
+    n_poles: int
+    poles: list[str]          # ["a", "b", ...]  (variable names)
+    coeffs: list[str]         # ["c1", "c2", ...]
+    lean_statement: str
+    proof_script: str
+
+
+_GENERAL_THEOREM = """\
+/-- General partial-fraction HasDerivAt theorem.
+    For any n real poles with simple-pole residues, the antiderivative is
+    a sum of weighted real logarithms. -/
+theorem partial_fraction_hasDerivAt
+    (n : ℕ) (poles : Fin n → ℝ) (coeffs : Fin n → ℝ)
+    (x : ℝ) (h_ne : ∀ i, x - poles i ≠ 0) :
+    HasDerivAt
+      (fun x : ℝ => ∑ i, coeffs i * Real.log (x - poles i))
+      (∑ i, coeffs i / (x - poles i))
+      x := by
+  have step : ∀ i, HasDerivAt (fun x => coeffs i * Real.log (x - poles i))
+                               (coeffs i / (x - poles i)) x := by
+    intro i
+    have hd := (hasDerivAt_id x |>.sub (hasDerivAt_const x (poles i))).log (h_ne i)
+    simpa [id, mul_div_assoc] using hd.const_mul (coeffs i)
+  simpa using HasDerivAt.sum (fun i _ => step i)
+"""
+
+_GENERAL_PROOF_SKETCH = (
+    "Induction on n; base case trivial; "
+    "inductive step uses HasDerivAt.add and hasDerivAt_log."
+)
+
+
+def build_general_theorem() -> GeneralPFDTheorem:
+    return GeneralPFDTheorem(
+        statement=_GENERAL_THEOREM,
+        proof_sketch=_GENERAL_PROOF_SKETCH,
+    )
+
+
+def _concrete_statement(n: int, poles: list[str], coeffs: list[str]) -> str:
+    """Build the Lean statement for a concrete n-pole instance."""
+    pole_binders = " ".join(f"({p} : ℝ)" for p in poles)
+    coeff_binders = " ".join(f"({c} : ℝ)" for c in coeffs)
+    hyp_binders = " ".join(
+        f"(h{p} : x - {p} ≠ 0)" for p in poles
+    )
+    antideriv_terms = " + ".join(
+        f"{c} * Real.log (x - {p})" for c, p in zip(coeffs, poles)
+    )
+    deriv_terms = " + ".join(
+        f"{c} / (x - {p})" for c, p in zip(coeffs, poles)
+    )
+    return (
+        f"theorem pfd_{n}_poles "
+        f"(x : ℝ) {pole_binders} {coeff_binders} {hyp_binders} :\n"
+        f"    HasDerivAt (fun x : ℝ => {antideriv_terms})\n"
+        f"               ({deriv_terms}) x"
+    )
+
+
+def _concrete_proof(n: int, poles: list[str]) -> str:
+    """Build the Lean proof for a concrete n-pole instance."""
+    if n == 1:
+        return (
+            " := by\n"
+            "  have h := (hasDerivAt_id x |>.sub (hasDerivAt_const x a)).log ha\n"
+            "  simpa [id, mul_div_assoc] using h.const_mul c1"
+        )
+    hyp_names = " ".join(f"h{p}" for p in poles)
+    return (
+        f" := by\n"
+        f"  apply partial_fraction_hasDerivAt\n"
+        f"  intro i; fin_cases i <;> simp [{hyp_names}]"
+    )
+
+
+def build_concrete_instances(max_poles: int = 4) -> list[ConcreteInstance]:
+    """Build concrete instantiations for 1 through max_poles poles."""
+    instances: list[ConcreteInstance] = []
+    pole_names_all = ["a", "b", "c", "d"]
+    coeff_names_all = ["c1", "c2", "c3", "c4"]
+
+    for n in range(1, max_poles + 1):
+        poles = pole_names_all[:n]
+        coeffs = coeff_names_all[:n]
+        stmt = _concrete_statement(n, poles, coeffs)
+        proof = _concrete_proof(n, poles)
+        instances.append(ConcreteInstance(
+            n_poles=n,
+            poles=poles,
+            coeffs=coeffs,
+            lean_statement=stmt,
+            proof_script=proof,
+        ))
+
+    return instances
+
+
+def write_pfd_lean_file(path: Optional[str] = None) -> Path:
+    """Write the general theorem + concrete instances as a Lean file."""
+    dest = Path(path) if path else Path(__file__).parent / "PartialFractionHasDerivAt.lean"
+
+    general = build_general_theorem()
+    concrete = build_concrete_instances()
+
+    parts = [
+        "-- Auto-generated by ProofForge Ω fricas_bridge/scaling_theorem.py",
+        "-- Tier 1.4 — Scaling-law theorem: general n-pole HasDerivAt",
+        "",
+        "import Mathlib.Analysis.SpecialFunctions.Log.Deriv",
+        "import Mathlib.Analysis.Calculus.Deriv.Basic",
+        "",
+        "open Real",
+        "",
+        general.statement,
+        "",
+        "-- Concrete instances",
+    ]
+    for inst in concrete:
+        parts.append(f"\n-- {inst.n_poles}-pole instance")
+        parts.append(inst.lean_statement + inst.proof_script)
+
+    dest.write_text("\n".join(parts))
+    return dest
