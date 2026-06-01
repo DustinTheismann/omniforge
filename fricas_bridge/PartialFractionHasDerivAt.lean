@@ -34,9 +34,14 @@ theorem partial_fraction_hasDerivAt
         (1 / (x - poles i)) x := by
       simpa using hsub.log (h_ne i)
     simpa [mul_one_div] using hlog.const_mul (coeffs i)
-  have hsum : HasDerivAt (fun y : ℝ => ∑ i, coeffs i * Real.log (y - poles i))
-      (∑ i, coeffs i / (x - poles i)) x :=
-    HasDerivAt.sum (fun i _ => step i)
+  -- HasDerivAt.sum concludes about the *function* `∑ i, A i`; convert it to the
+  -- pointwise `fun y => ∑ i, A i y` via Finset.sum_apply rather than rely on defeq.
+  have hsum := HasDerivAt.sum (fun i (_ : i ∈ (Finset.univ : Finset (Fin n))) => step i)
+  have hfun :
+      (fun y : ℝ => ∑ i, coeffs i * Real.log (y - poles i))
+        = (∑ i : Fin n, fun y : ℝ => coeffs i * Real.log (y - poles i)) := by
+    funext y; simp [Finset.sum_apply]
+  rw [hfun]
   exact hsum
 
 /-- Single-pole specialisation (the `n = 1` instance, matching the shape of
@@ -47,6 +52,6 @@ theorem partial_fraction_one_pole
     HasDerivAt (fun y : ℝ => c * Real.log (y - a)) (c / (x - a)) x := by
   have h1 := partial_fraction_hasDerivAt (n := 1)
     (fun _ => a) (fun _ => c) x (by intro i; simpa using h)
-  simpa using h1
+  simpa [Fin.sum_univ_one] using h1
 
 end
