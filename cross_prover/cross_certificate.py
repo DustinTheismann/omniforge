@@ -8,40 +8,53 @@ A CrossProverCertificate records:
   - which claim was verified
   - which artifact was checked by each kernel (file path + SHA-256)
   - the Lean theorem statement and the Coq theorem statement
-  - whether the two statements are semantically equivalent (checked by
-    comparing their normalised forms)
+  - whether the derivative EQUATION matches across kernels (equation_equivalent)
+  - how the DOMAINS relate (domain_relation): identical, or branch-cut divergent
 
-The default focus claim is bronstein_007:  ∫ 1/x dx = log x
-  Lean 4:  autodischarge_007 in fricas_bridge/RischAutoDischarge.lean
-  Coq:     coq_autodischarge_007 in cross_prover/RischCoqDischarge.v
+The honest distinction this module now enforces:
+  * Lean's `Real.log` is total, so its log theorems carry `arg <> 0`.
+  * Coq's `ln` is the PRINCIPAL branch (kernel-confirmed by coqc), so its log
+    theorems carry `0 < arg`.
+  A caveat-free cross-prover certificate therefore exists ONLY for the
+  positive-argument cases (bronstein_001/003/004/006), where both kernels prove
+  the SAME unconditional statement.  For the branch-cut cases (005/007/008/009)
+  the equation matches but the domains diverge — which is itself evidence of the
+  branch-cut discrepancy, not a caveat-free certificate.
+
+The default flagship is bronstein_003:  d/dx ln(x²+1)/2 = x/(x²+1)
+  Lean 4:  autodischarge_003 in fricas_bridge/RischAutoDischarge.lean   (lean.yml)
+  Coq:     coq_autodischarge_003 in cross_prover/RischCoqDischarge.v     (coq.yml)
 
 Public API
 ----------
 CrossProverCertificate          dataclass
 build_certificate(claim_id)     → CrossProverCertificate
 certify_all()                   → list[CrossProverCertificate]
+verify_coq_artifact()           → Optional[bool]   (runs coqc if available)
 """
 from __future__ import annotations
 
 import hashlib
 import re
-from dataclasses import dataclass, asdict
+import shutil
+import subprocess
+from dataclasses import dataclass, asdict, field
 from pathlib import Path
 from typing import Optional
 
-from cross_prover.coq_emitter import emit_coq
+from cross_prover.coq_emitter import emit_coq, COQ_SOURCE
 from fricas_bridge.proof_discharger import generate_theorem_text
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 
-# Default pair: the cleanest integral — log x
-_DEFAULT_CLAIM = "pf.integral.bronstein_007"
+# Default flagship: caveat-free in both kernels (positive argument, no branch cut).
+_DEFAULT_CLAIM = "pf.integral.bronstein_003"
 
-# Claims to certify by default
+# Claims to certify by default: two caveat-free, one branch-cut (to show the line).
 _CERT_CLAIMS = [
-    "pf.integral.bronstein_007",   # Class B — log x  (simplest cross-cert)
-    "pf.integral.bronstein_003",   # Class A — log(x²+1)/2
-    "pf.integral.bronstein_009",   # Class D — three-pole PFD
+    "pf.integral.bronstein_003",   # caveat-free: ln(x²+1)/2, arg > 0 always
+    "pf.integral.bronstein_004",   # caveat-free: arctan(x²), total
+    "pf.integral.bronstein_007",   # branch-cut divergent: ln x  (Lean x≠0 / Coq 0<x)
 ]
 
 
@@ -51,7 +64,8 @@ class KernelWitness:
     theorem_name: str              # "autodischarge_007"
     artifact_path: str             # relative repo path
     artifact_sha256: Optional[str] # sha256 of file, None if not on disk
-    theorem_statement: str         # normalised statement text
+    theorem_statement: str         # statement text
+    hypotheses: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -61,7 +75,18 @@ class CrossProverCertificate:
     antideriv: str
     lean_witness: KernelWitness
     coq_witness: KernelWitness
-    statements_equivalent: bool    # True when normalised forms match
+    equation_equivalent: bool      # derivative equation matches (ignoring domain)
+    domain_relation: str           # "identical" | "branch_cut_divergent"
+
+    @property
+    def caveat_free(self) -> bool:
+        """A genuine cross-prover certificate: same equation AND same domain."""
+        return self.equation_equivalent and self.domain_relation == "identical"
+
+    @property
+    def statements_equivalent(self) -> bool:
+        """Back-compat alias: the statements are identical iff caveat-free."""
+        return self.caveat_free
 
     @property
     def is_complete(self) -> bool:
@@ -135,6 +160,72 @@ def _sha256_of(path: Path) -> Optional[str]:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+_LEAN_BINDER_RE = re.compile(r"\(([^()]*?:[^()]*?)\)")
+
+
+def _extract_lean_hypotheses(lean_stmt: str) -> list[str]:
+    """Pull non-`(x : ℝ)` binders out of a Lean theorem signature."""
+    head = lean_stmt.split("HasDerivAt", 1)[0]
+    hyps: list[str] = []
+    for b in _LEAN_BINDER_RE.findall(head):
+        b = " ".join(b.split())
+        if b.replace(" ", "") in ("x:ℝ", "x:R"):
+            continue
+        hyps.append(b)
+    return hyps
+
+
+def _domain_relation(lean_hyps: list[str], coq_hyps: list[str]) -> str:
+    """
+    Classify how the two kernels' domains relate.
+
+    - both unconditional            → "identical"
+    - Lean uses `≠`/Coq uses `0 <`  → "branch_cut_divergent"
+    - otherwise (same shape)         → "identical"
+    """
+    if not lean_hyps and not coq_hyps:
+        return "identical"
+    coq_is_positivity = any("0 <" in h for h in coq_hyps)
+    lean_is_nonzero = any("≠" in h or "<>" in h for h in lean_hyps)
+    if coq_is_positivity and lean_is_nonzero:
+        return "branch_cut_divergent"
+    if coq_is_positivity != lean_is_nonzero:
+        return "branch_cut_divergent"
+    return "identical"
+
+
+def verify_coq_artifact(root: Optional[Path] = None) -> Optional[bool]:
+    """
+    Run coqc on the committed Coq artifact if a Coq toolchain is available.
+
+    Returns True if the Coq kernel accepts every theorem, False if it rejects,
+    and None if `coqc` is not installed (so callers can skip rather than fail).
+    The authoritative check is .github/workflows/coq.yml; this lets local/CI
+    runs that *do* have coqc assert kernel acceptance directly.
+    """
+    if shutil.which("coqc") is None:
+        return None
+    src = (root / "cross_prover" / "RischCoqDischarge.v") if root else COQ_SOURCE
+    env_path = "/usr/lib/ocaml/coq/user-contrib"
+    import os
+    env = dict(os.environ)
+    # Prepend the standard Debian Coquelicot location if present.
+    if Path(env_path).exists():
+        env["COQPATH"] = env_path + (":" + env["COQPATH"] if env.get("COQPATH") else "")
+    try:
+        proc = subprocess.run(
+            ["coqc", src.name],
+            cwd=str(src.parent),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+        return proc.returncode == 0
+    except (subprocess.TimeoutExpired, OSError):
+        return None
+
+
 # ---------------------------------------------------------------------------
 # Certificate builder
 # ---------------------------------------------------------------------------
@@ -156,12 +247,14 @@ def build_certificate(claim_id: str) -> CrossProverCertificate:
     lean_sha = _sha256_of(lean_path)
     lean_stmt = _extract_lean_theorem(lean_text, f"autodischarge_{suffix}")
 
+    lean_hyps = _extract_lean_hypotheses(lean_stmt)
     lean_witness = KernelWitness(
         kernel="lean4:v4.30.0 + mathlib:v4.30.0",
         theorem_name=f"autodischarge_{suffix}",
         artifact_path=lean_artifact,
         artifact_sha256=lean_sha,
         theorem_statement=lean_stmt,
+        hypotheses=lean_hyps,
     )
 
     # ---- Coq witness ----
@@ -176,10 +269,12 @@ def build_certificate(claim_id: str) -> CrossProverCertificate:
         artifact_path=coq_artifact,
         artifact_sha256=coq_sha,
         theorem_statement=coq_proof.statement,
+        hypotheses=coq_proof.hypotheses,
     )
 
-    # ---- Equivalence check ----
-    equiv = _normalise(lean_stmt) == _normalise(coq_proof.statement)
+    # ---- Equation equivalence (ignores domain) + domain relation ----
+    equation_equivalent = _normalise(lean_stmt) == _normalise(coq_proof.statement)
+    domain_relation = _domain_relation(lean_hyps, coq_proof.hypotheses)
 
     return CrossProverCertificate(
         claim_id=claim_id,
@@ -187,7 +282,8 @@ def build_certificate(claim_id: str) -> CrossProverCertificate:
         antideriv=coq_proof.antideriv,
         lean_witness=lean_witness,
         coq_witness=coq_witness,
-        statements_equivalent=equiv,
+        equation_equivalent=equation_equivalent,
+        domain_relation=domain_relation,
     )
 
 

@@ -101,7 +101,9 @@ def test_e2e_coq_theorem_007():
     p = emit_coq(_CLAIM_007_ID)
     assert "coq_autodischarge_007" in p.theorem_name
     assert "is_derive" in p.statement
-    assert "hx : x <> 0" in p.hypotheses[0]
+    # Coq's principal-branch ln needs 0<x (NOT x<>0): the branch cut, kernel-confirmed.
+    assert "hx : 0 < x" in p.hypotheses[0]
+    assert p.is_branch_cut is True
 
 
 # ---------------------------------------------------------------------------
@@ -170,18 +172,45 @@ def test_e2e_transmute_007_all_discharged():
 # Stage 10: Cross-prover certificate
 # ---------------------------------------------------------------------------
 
-def test_e2e_cross_certificate_007():
-    cert = build_certificate(_CLAIM_007_ID)
+_FLAGSHIP_ID = "pf.integral.bronstein_003"   # caveat-free in both kernels
+
+
+def test_e2e_caveat_free_certificate_003():
+    """The genuine cross-prover certificate: 003 holds unconditionally in both
+    Lean and Coq, with both artifacts hash-pinned."""
+    cert = build_certificate(_FLAGSHIP_ID)
     assert cert.is_complete
-    assert cert.statements_equivalent
+    assert cert.caveat_free
+    assert cert.domain_relation == "identical"
     assert cert.lean_witness.artifact_sha256 is not None
     assert cert.coq_witness.artifact_sha256 is not None
 
 
-def test_e2e_certificate_both_kernels():
+def test_e2e_007_is_branch_cut_not_caveat_free():
+    """007 (ln x) matches on the equation but diverges on domain — honestly
+    recorded as branch-cut, not a caveat-free certificate."""
     cert = build_certificate(_CLAIM_007_ID)
+    assert cert.equation_equivalent
+    assert cert.caveat_free is False
+    assert cert.domain_relation == "branch_cut_divergent"
+
+
+def test_e2e_certificate_both_kernels():
+    cert = build_certificate(_FLAGSHIP_ID)
     assert "lean4" in cert.lean_witness.kernel.lower()
     assert "coq" in cert.coq_witness.kernel.lower()
+
+
+def test_e2e_coq_kernel_actually_accepts():
+    """Stage 10b — actually run the Coq kernel when available (else CI's
+    coq.yml is the arbiter)."""
+    from cross_prover.cross_certificate import verify_coq_artifact
+    import shutil
+    result = verify_coq_artifact()
+    if result is None:
+        assert shutil.which("coqc") is None
+    else:
+        assert result is True
 
 
 # ---------------------------------------------------------------------------

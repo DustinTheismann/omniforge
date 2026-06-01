@@ -1,0 +1,49 @@
+name: Coq verification
+
+# The second independent kernel of the cross-prover certificate.
+# Runs coqc + Coquelicot on the emitted Coq theorems so that "verified in Coq"
+# means a Coq kernel actually accepted them — not that text was emitted.
+
+on:
+  push:
+    paths:
+      - 'cross_prover/**/*.v'
+      - '.github/workflows/coq.yml'
+  pull_request:
+    paths:
+      - 'cross_prover/**/*.v'
+      - '.github/workflows/coq.yml'
+
+jobs:
+  verify:
+    name: Typecheck Coq proofs (Coquelicot)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Coq + Coquelicot
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y coq libcoq-coquelicot
+          coqc --version
+
+      - name: Typecheck the cross-prover Coq theorems
+        working-directory: cross_prover
+        run: |
+          export COQPATH=/usr/lib/ocaml/coq/user-contrib
+          # coqc produces a .vo only if the kernel accepts every theorem.
+          coqc RischCoqDischarge.v
+          test -f RischCoqDischarge.vo
+
+      - name: Report kernel-verified Coq theorems
+        run: |
+          echo "Coq kernel (Coquelicot) accepted all theorems in RischCoqDischarge.v."
+          echo ""
+          echo "Caveat-free cross-prover certificate (unconditional in Lean AND Coq):"
+          echo "  coq_autodischarge_003   d/dx ln(x^2+1)/2 = x/(x^2+1)"
+          echo "  coq_autodischarge_004   d/dx atan(x^2)   = 2x/(1+x^4)"
+          echo "  coq_autodischarge_006   d/dx atan(x+1)   = 1/(x^2+2x+2)"
+          echo ""
+          echo "Branch-cut cases (Coq principal-branch ln needs 0<arg; Lean needs arg<>0):"
+          echo "  coq_autodischarge_007/005/008/009"

@@ -4,3 +4,11 @@ __pycache__/
 artifacts/run_*/
 artifacts/manifest.json
 fricas_bridge/output/
+
+# Coq build artifacts
+*.vo
+*.vok
+*.vos
+*.glob
+.*.aux
+.nra.cache

@@ -143,32 +143,50 @@ def test_lean_coq_sha256_differ():
 
 
 # ---------------------------------------------------------------------------
-# Certificate completeness and equivalence
+# Honest semantics: equation equivalence vs domain relation
 # ---------------------------------------------------------------------------
 
-def test_certificate_007_is_complete():
-    cert = build_certificate("pf.integral.bronstein_007")
+def test_certificate_complete_both_artifacts():
+    cert = build_certificate("pf.integral.bronstein_003")
     assert cert.is_complete is True
 
 
-def test_certificate_007_statements_equivalent():
-    cert = build_certificate("pf.integral.bronstein_007")
-    assert cert.statements_equivalent is True
+def test_caveat_free_flagship_003():
+    """003 (ln(x²+1)/2, positive arg) is caveat-free in both kernels."""
+    cert = build_certificate("pf.integral.bronstein_003")
+    assert cert.equation_equivalent is True
+    assert cert.domain_relation == "identical"
+    assert cert.caveat_free is True
+    assert cert.statements_equivalent is True   # back-compat alias
+
+
+def test_caveat_free_arctan_004():
+    cert = build_certificate("pf.integral.bronstein_004")
+    assert cert.caveat_free is True
 
 
 @pytest.mark.parametrize("claim_id", [
     "pf.integral.bronstein_007",
-    "pf.integral.bronstein_003",
     "pf.integral.bronstein_009",
 ])
-def test_certificate_complete_and_equivalent(claim_id):
+def test_branch_cut_cases_equation_matches_domain_diverges(claim_id):
+    """007/009: the derivative equation matches, but Lean (arg≠0) and Coq
+    (0<arg) prove it on different domains — honestly NOT caveat-free."""
     cert = build_certificate(claim_id)
-    assert cert.is_complete, f"{claim_id}: artifacts missing"
-    assert cert.statements_equivalent, f"{claim_id}: statements not equivalent"
+    assert cert.equation_equivalent is True
+    assert cert.domain_relation == "branch_cut_divergent"
+    assert cert.caveat_free is False
+    assert cert.statements_equivalent is False
+
+
+def test_branch_cut_hypotheses_recorded():
+    cert = build_certificate("pf.integral.bronstein_007")
+    assert any("≠" in h for h in cert.lean_witness.hypotheses)
+    assert any("0 <" in h for h in cert.coq_witness.hypotheses)
 
 
 # ---------------------------------------------------------------------------
-# certify_all
+# certify_all — two caveat-free, one branch-cut
 # ---------------------------------------------------------------------------
 
 def test_certify_all_returns_three():
@@ -181,23 +199,46 @@ def test_certify_all_all_complete():
         assert cert.is_complete, f"{cert.claim_id}: not complete"
 
 
-def test_certify_all_all_equivalent():
+def test_certify_all_has_caveat_free_and_branch_cut():
+    certs = certify_all()
+    caveat_free = [c for c in certs if c.caveat_free]
+    branch_cut = [c for c in certs if c.domain_relation == "branch_cut_divergent"]
+    assert len(caveat_free) == 2, "expected 003 and 004 caveat-free"
+    assert len(branch_cut) == 1, "expected 007 branch-cut divergent"
+
+
+def test_certify_all_every_equation_matches():
     for cert in certify_all():
-        assert cert.statements_equivalent, f"{cert.claim_id}: not equivalent"
+        assert cert.equation_equivalent, f"{cert.claim_id}: equation mismatch"
 
 
 def test_certify_all_accepts_custom_list():
-    certs = certify_all(["pf.integral.bronstein_007"])
+    certs = certify_all(["pf.integral.bronstein_003"])
     assert len(certs) == 1
-    assert certs[0].claim_id == "pf.integral.bronstein_007"
+    assert certs[0].claim_id == "pf.integral.bronstein_003"
 
 
 def test_certificate_to_dict_serialisable():
     import json
-    cert = build_certificate("pf.integral.bronstein_007")
+    cert = build_certificate("pf.integral.bronstein_003")
     d = cert.to_dict()
-    # Must be JSON serialisable (no non-serialisable objects)
-    json.dumps(d)
-    assert d["claim_id"] == "pf.integral.bronstein_007"
+    json.dumps(d)  # must not raise
+    assert d["claim_id"] == "pf.integral.bronstein_003"
     assert "lean_witness" in d
     assert "coq_witness" in d
+    assert d["domain_relation"] == "identical"
+
+
+# ---------------------------------------------------------------------------
+# Live coqc verification (when available)
+# ---------------------------------------------------------------------------
+
+def test_verify_coq_artifact_runs_kernel():
+    from cross_prover.cross_certificate import verify_coq_artifact
+    result = verify_coq_artifact()
+    # None when coqc absent (CI's coq.yml covers it); True/False when present.
+    if result is None:
+        import shutil
+        assert shutil.which("coqc") is None
+    else:
+        assert result is True, "coqc rejected the committed Coq artifact"
