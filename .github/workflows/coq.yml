@@ -28,6 +28,16 @@ jobs:
           sudo apt-get install -y coq libcoq-coquelicot
           coqc --version
 
+      - name: Guard Coq source against Admitted/Axiom
+        run: |
+          # coqc accepts Admitted silently, so CI green without this guard
+          # would not mean the Coq kernel verified the proofs.
+          if grep -nE '\bAdmitted\b|\badmit\b|^Axiom |^Conjecture ' cross_prover/RischCoqDischarge.v; then
+            echo "::error::Admitted/Axiom/Conjecture found in RischCoqDischarge.v — Coq proof is incomplete"
+            exit 1
+          fi
+          echo "RischCoqDischarge.v is Admitted/Axiom-free."
+
       - name: Typecheck the cross-prover Coq theorems
         working-directory: cross_prover
         run: |

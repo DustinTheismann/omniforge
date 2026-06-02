@@ -1,3 +1,15 @@
+-- *** NOT A VERIFIED LIBRARY — ORACLE SEAM DEMO ***
+--
+-- This file is NOT registered in lakefile.lean and is NOT compiled by CI.
+-- It is an illustration of how an oracle-seam works; it intentionally
+-- contains one `axiom` to mark the seam between FriCAS output and a
+-- Lean certificate.  Nothing in this file contributes to the
+-- cross-prover certificate.
+--
+-- Verified libraries (compiled by lean.yml, no sorry/axiom):
+--   RischVerification.lean, RischAutoDischarge.lean,
+--   PartialFractionHasDerivAt.lean, FriCASTranslator.lean, FriCASParser.lean
+--
 -- FriCAS ↔ Lean 4 Bidirectional Bridge Demo
 --
 -- Shows two things:
@@ -6,9 +18,9 @@
 --      take to replace that oracle with a verified certificate.
 --
 -- This file is structured to typecheck with Lean 4 + Mathlib once the
--- generated FriCAS_Algebra import is in scope.  The axiom declarations
--- below mark the two places a full implementation would replace an
--- oracle with a proof.
+-- generated FriCAS_Algebra import is in scope.  The axiom declaration
+-- below marks the seam between what FriCAS computed and what Lean
+-- needs to certify.
 
 -- ============================================================
 -- Notation used throughout
