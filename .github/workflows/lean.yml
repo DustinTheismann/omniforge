@@ -56,6 +56,7 @@ jobs:
             fricas_bridge/RischVerification.lean
             fricas_bridge/RischAutoDischarge.lean
             fricas_bridge/PartialFractionHasDerivAt.lean
+            fricas_bridge/CasAdjudication.lean
             fricas_bridge/FriCASTranslator.lean
             fricas_bridge/FriCASParser.lean
           )

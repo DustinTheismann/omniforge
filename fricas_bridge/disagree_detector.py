@@ -425,3 +425,59 @@ def scan_bronstein() -> list[DisagreementReport]:
     """Scan only the 8 Bronstein baseline integrands."""
     from fricas_bridge.cas_corpus import load_bronstein_set
     return scan_corpus(load_bronstein_set())
+
+
+def compare_live(integrand: str, var: str = "x") -> DisagreementReport:
+    """
+    Like compare_triple but queries SymPy live (mode="online") for the integrand.
+
+    This extends coverage beyond the offline SymPy cache: any integrand that
+    SymPy can handle will be compared against FriCAS and Maxima offline caches,
+    and if a new disagreement is found, a DisagreementReport is returned.
+
+    If SymPy cannot integrate the expression, the report will show ONE_MISSING.
+    """
+    fricas = FriCASResolver(mode="offline").resolve(integrand, var)
+    fricas_result = fricas.antiderivative if fricas.ok else None
+
+    from fricas_bridge.sympy_resolver import SymPyResolver as SR
+    sympy_result = SR(mode="online").integrate(integrand, var)
+    maxima_result = MaximaResolver(mode="offline").integrate(integrand, var)
+
+    results = {
+        "FriCAS": fricas_result,
+        "SymPy":  sympy_result,
+        "Maxima": maxima_result,
+    }
+    present = {k: v for k, v in results.items() if v is not None}
+
+    deriv_correct: dict[str, bool] = {}
+    for src, antideriv in present.items():
+        ok = _sympy_deriv_correct(antideriv, integrand, var)
+        if ok is not None:
+            deriv_correct[src] = ok
+
+    cls, notes, plan = _classify(integrand, var, present, deriv_correct)
+
+    return DisagreementReport(
+        integrand=integrand,
+        var=var,
+        fricas_result=fricas_result,
+        sympy_result=sympy_result,
+        maxima_result=maxima_result,
+        disagreement=cls.value,
+        present_count=len(present),
+        derivative_correct=deriv_correct,
+        adjudication_plan=plan,
+        notes=notes,
+    )
+
+
+def scan_live(integrands: list[str], var: str = "x") -> list[DisagreementReport]:
+    """
+    Scan a list of integrand strings using live SymPy queries.
+
+    Returns a report for each integrand, including any newly discovered
+    disagreements not covered by the offline corpus.
+    """
+    return [compare_live(ig, var) for ig in integrands]

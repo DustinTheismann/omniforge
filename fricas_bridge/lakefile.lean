@@ -27,3 +27,10 @@ lean_lib RischAutoDischarge where
 /-- Tier 1.4 — the general n-pole partial-fraction scaling-law theorem. -/
 lean_lib PartialFractionHasDerivAt where
   roots := #[`PartialFractionHasDerivAt]
+
+/-- Tier 1.5 — CAS disagreement kernel adjudication.
+    Proves that the FriCAS/Maxima factored-log form and the SymPy product-log
+    form for bronstein_005 and bronstein_009 are equal under the domain
+    conditions required by HasDerivAt (via Real.log_mul). -/
+lean_lib CasAdjudication where
+  roots := #[`CasAdjudication]
