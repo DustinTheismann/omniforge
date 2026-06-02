@@ -63,6 +63,11 @@ SYMPY_CACHE: dict[str, str] = {
     _key("x/(x^4-1)", "x"):                "log(x^2-1)/4-log(x^2+1)/4",
     _key("1/(x^3+x)", "x"):                "log(x)-log(x^2+1)/2",
     _key("1/(x^2*(x+1))", "x"):            "-log(x)+log(x+1)-1/x",
+    # FORM_DISAGREE: SymPy product form vs FriCAS factored form (Real.log_mul)
+    # x/(x^4-1): log(x^2-1)/4 - log(x^2+1)/4  vs  log(x-1)/4+log(x+1)/4-log(x^2+1)/4
+    _key("x/(x^4-1)", "x"):               "log(x**2-1)/4-log(x**2+1)/4",
+    # 1/(x*(x+1)*(x-1)): -log(x)+log(x^2-1)/2  vs  -log(x)+log(x-1)/2+log(x+1)/2
+    _key("1/(x*(x+1)*(x-1))", "x"):       "-log(x)+log(x**2-1)/2",
     # Standard integrals
     _key("1", "x"):                         "x",
     _key("x", "x"):                         "x**2/2",

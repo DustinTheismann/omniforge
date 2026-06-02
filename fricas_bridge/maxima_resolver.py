@@ -108,6 +108,9 @@ MAXIMA_CACHE: dict[str, str] = {
     _key("1/(1-x^2)", "x"):                 "-log(x-1)/2 + log(x+1)/2",
     _key("1/(x^2*(x+1))", "x"):             "-1/x - log(x) + log(x+1)",
     _key("1/(x^4-1)", "x"):                 "log(x-1)/4 - log(x+1)/4 - atan(x)/2",
+    # New FORM_DISAGREE cases: Maxima agrees with FriCAS (factored form)
+    _key("x/(x^4-1)", "x"):                 "log(x-1)/4 + log(x+1)/4 - log(x^2+1)/4",
+    _key("1/(x*(x+1)*(x-1))", "x"):         "-log(x) + log(x-1)/2 + log(x+1)/2",
 }
 
 

@@ -29,7 +29,7 @@ def test_lean_adjudication_file_exists():
 
 def test_lean_adjudication_theorems_present():
     theorems = lean_adjudication_theorems()
-    # The six theorems in CasAdjudication.lean
+    # All ten theorems in CasAdjudication.lean
     for name in [
         "form_disagree_005_equivalent",
         "autodischarge_005_sympy_form",
@@ -37,12 +37,16 @@ def test_lean_adjudication_theorems_present():
         "form_disagree_009_equivalent",
         "autodischarge_009_sympy_form",
         "adjudicate_009",
+        "form_disagree_x_over_x4m1_equivalent",
+        "autodischarge_x_over_x4m1_sympy_form",
+        "form_disagree_recip_xpolesym_equivalent",
+        "autodischarge_recip_xpolesym_sympy_form",
     ]:
         assert name in theorems, f"Missing theorem: {name}"
 
 
-def test_lean_adjudication_file_has_six_theorems():
-    assert len(lean_adjudication_theorems()) == 6
+def test_lean_adjudication_file_has_ten_theorems():
+    assert len(lean_adjudication_theorems()) == 10
 
 
 # ---------------------------------------------------------------------------
@@ -177,7 +181,7 @@ def test_agree_cert_has_antiderivs():
 def test_certify_all_corpus_returns_list():
     certs = certify_all_corpus()
     assert isinstance(certs, list)
-    assert len(certs) >= 35
+    assert len(certs) >= 37
 
 
 def test_certify_all_corpus_all_dataclasses():
@@ -185,14 +189,54 @@ def test_certify_all_corpus_all_dataclasses():
         assert isinstance(cert, AdjudicationCertificate)
 
 
-def test_certify_all_corpus_has_two_kernel_adjudicated():
-    """Exactly two integrands have Lean kernel adjudication (005 and 009)."""
+def test_certify_all_corpus_has_four_kernel_adjudicated():
+    """Exactly four integrands have Lean kernel adjudication."""
     certs = certify_all_corpus()
     ka = [c for c in certs if c.is_kernel_adjudicated]
-    assert len(ka) == 2
+    assert len(ka) == 4
     integrands = {c.integrand for c in ka}
     assert "(x+1)/(x*(x+2))" in integrands
     assert "1/(x*(x+1)*(x+2))" in integrands
+    assert "x/(x^4-1)" in integrands
+    assert "1/(x*(x+1)*(x-1))" in integrands
+
+
+# ---------------------------------------------------------------------------
+# x/(x^4-1) — NOTATIONAL_ONLY (kernel-adjudicated)
+# ---------------------------------------------------------------------------
+
+def test_x4m1_cert_notational_only():
+    cert = build_adjudication_cert("x/(x^4-1)")
+    assert cert.adjudication_kind == AdjudicationKind.NOTATIONAL_ONLY.value
+    assert cert.is_kernel_adjudicated is True
+
+
+def test_x4m1_cert_lean_lemma():
+    cert = build_adjudication_cert("x/(x^4-1)")
+    assert cert.lean_equivalence_lemma == "form_disagree_x_over_x4m1_equivalent"
+
+
+def test_x4m1_cert_both_antiderivs_present():
+    cert = build_adjudication_cert("x/(x^4-1)")
+    assert cert.fricas_antideriv is not None
+    assert cert.sympy_antideriv is not None
+    assert "log(x-1)" in cert.fricas_antideriv
+    assert "log(x+1)" in cert.fricas_antideriv
+
+
+# ---------------------------------------------------------------------------
+# 1/(x*(x+1)*(x-1)) — NOTATIONAL_ONLY (kernel-adjudicated)
+# ---------------------------------------------------------------------------
+
+def test_xpolesym_cert_notational_only():
+    cert = build_adjudication_cert("1/(x*(x+1)*(x-1))")
+    assert cert.adjudication_kind == AdjudicationKind.NOTATIONAL_ONLY.value
+    assert cert.is_kernel_adjudicated is True
+
+
+def test_xpolesym_cert_lean_lemma():
+    cert = build_adjudication_cert("1/(x*(x+1)*(x-1))")
+    assert cert.lean_equivalence_lemma == "form_disagree_recip_xpolesym_equivalent"
 
 
 def test_certify_all_corpus_has_domain_restricted():

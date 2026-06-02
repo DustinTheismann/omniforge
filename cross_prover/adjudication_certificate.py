@@ -74,6 +74,26 @@ _FORM_EQUIV_LEMMAS: dict[str, dict] = {
             "by Real.log_mul. Three-pole case: notational only."
         ),
     },
+    "x/(x^4-1)": {
+        "equivalence_lemma": "form_disagree_x_over_x4m1_equivalent",
+        "sympy_theorem":     "autodischarge_x_over_x4m1_sympy_form",
+        "lean_file":         "fricas_bridge/CasAdjudication.lean",
+        "adjudication_note": (
+            "FriCAS/Maxima log(x−1)/4+log(x+1)/4−log(x²+1)/4 = "
+            "SymPy log(x²−1)/4−log(x²+1)/4 by Real.log_mul under x≠1 ∧ x≠−1. "
+            "Notational only."
+        ),
+    },
+    "1/(x*(x+1)*(x-1))": {
+        "equivalence_lemma": "form_disagree_recip_xpolesym_equivalent",
+        "sympy_theorem":     "autodischarge_recip_xpolesym_sympy_form",
+        "lean_file":         "fricas_bridge/CasAdjudication.lean",
+        "adjudication_note": (
+            "FriCAS/Maxima −log(x)+log(x−1)/2+log(x+1)/2 = "
+            "SymPy −log(x)+log(x²−1)/2 by Real.log_mul under x≠1 ∧ x≠−1. "
+            "Notational only."
+        ),
+    },
 }
 
 # For DOMAIN_RESTRICTED cases: no equivalence, but both forms are certified
@@ -99,6 +119,27 @@ _DOMAIN_RESTRICTED_PAIRS: dict[str, dict] = {
             "Maxima asinh(x) = log(x+sqrt(x²+1)) for all reals. "
             "Equal on full domain; domain_restricted classification is "
             "conservative (the forms are actually globally equal)."
+        ),
+    },
+    "sqrt(x^2-1)": {
+        "maxima_form": "x*sqrt(x^2-1)/2 - acosh(x)/2",
+        "sympy_form":  "x*sqrt(x^2-1)/2 - log(x+sqrt(x^2-1))/2",
+        "maxima_domain": "x ≥ 1",
+        "sympy_domain":  "x > 1 (analytic continuation via complex log)",
+        "adjudication_note": (
+            "The mixed forms differ only in the acosh vs log(x+sqrt(x²−1)) component. "
+            "Maxima acosh(x) = log(x+sqrt(x²−1)) for x≥1, but represent "
+            "different analytic continuations. Same pattern as 1/sqrt(x²−1)."
+        ),
+    },
+    "sqrt(x^2+1)": {
+        "maxima_form": "x*sqrt(x^2+1)/2 + asinh(x)/2",
+        "sympy_form":  "x*sqrt(x^2+1)/2 + log(x+sqrt(x^2+1))/2",
+        "maxima_domain": "all x ∈ ℝ",
+        "sympy_domain":  "all x ∈ ℝ (equal forms)",
+        "adjudication_note": (
+            "asinh(x) = log(x+sqrt(x²+1)) for all reals; the forms are globally equal "
+            "but use different representations. Conservative domain_restricted label."
         ),
     },
 }

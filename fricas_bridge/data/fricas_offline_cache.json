@@ -17,6 +17,14 @@
       "source": "corpus:three_poles_sym",
       "var": "x"
     },
+    "0a1b4c7abd04bd64ab4c5af039430083bf2c8c6969c45e9793a9fe13d2fa260f": {
+      "antiderivative": "log(x-1)/4 + log(x+1)/4 - log(x^2+1)/4",
+      "class": "E",
+      "integrand": "x/(x^4-1)",
+      "label": "x_over_x4m1",
+      "source": "corpus:x_over_x4m1",
+      "var": "x"
+    },
     "13f280c90f2b6b1b0a0de8712473f7c4f9d37e73348e7e746e7b78c5ace01ae7": {
       "antiderivative": "atan(x^2)",
       "class": "A",
@@ -169,6 +177,14 @@
       "source": "corpus:pf_weighted",
       "var": "x"
     },
+    "f52733511992b7de127bda6c247ed6fb5e1ad8a10882efbd444559e5c11f62b2": {
+      "antiderivative": "-log(x) + log(x-1)/2 + log(x+1)/2",
+      "class": "E",
+      "integrand": "1/(x*(x+1)*(x-1))",
+      "label": "three_poles_sym_alt",
+      "source": "corpus:three_poles_sym_alt",
+      "var": "x"
+    },
     "f5eba520425b6cb269d4710abf8c68dd7dc5b68bae0d77151c31c068af067459": {
       "antiderivative": "log(x)",
       "class": "B",
@@ -194,7 +210,7 @@
       "var": "x"
     }
   },
-  "entry_count": 24,
+  "entry_count": 26,
   "key_scheme": "sha256(integrand||var)",
   "schema_version": "0.1.0"
 }

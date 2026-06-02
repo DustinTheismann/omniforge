@@ -250,6 +250,32 @@ CORPUS: list[dict] = [
         "antiderivative": "log(x) - log(x-1)/2 + log(x+1)/2",
         "var": "x",
     },
+    # ── Class E: Extended rational PFD — new FORM_DISAGREE cases ─────────────
+    # These integrands produce FriCAS factored log form vs SymPy product form.
+    # The disagreement is proved notational by Real.log_mul in CasAdjudication.lean.
+    {
+        "label": "x_over_x4m1",
+        "class": "E",
+        "description": (
+            "∫ x/(x⁴−1) dx; FriCAS → log(x−1)/4+log(x+1)/4−log(x²+1)/4; "
+            "SymPy → log(x²−1)/4−log(x²+1)/4; FORM_DISAGREE via Real.log_mul"
+        ),
+        "integrand":    "x/(x^4-1)",
+        "antiderivative": "log(x-1)/4 + log(x+1)/4 - log(x^2+1)/4",
+        "var": "x",
+    },
+    {
+        "label": "three_poles_sym_alt",
+        "class": "E",
+        "description": (
+            "∫ 1/(x(x+1)(x−1)) dx; FriCAS → −log(x)+log(x−1)/2+log(x+1)/2; "
+            "SymPy → −log(x)+log(x²−1)/2; FORM_DISAGREE via Real.log_mul. "
+            "Alias for three_poles_sym with x+1 and x−1 swapped."
+        ),
+        "integrand":    "1/(x*(x+1)*(x-1))",
+        "antiderivative": "-log(x) + log(x-1)/2 + log(x+1)/2",
+        "var": "x",
+    },
 ]
 
 
