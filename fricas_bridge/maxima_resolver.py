@@ -149,30 +149,43 @@ class MaximaResolver:
         return None
 
     def _live_integrate(self, integrand: str, var: str) -> Optional[str]:
-        """Run Maxima as a subprocess; returns None if Maxima is unavailable."""
+        """
+        Run Maxima as a subprocess; returns None if Maxima is unavailable.
+
+        Robust output handling:
+          * `linel: 1000000` disables Maxima's line wrapping, so long
+            antiderivatives are emitted on a single physical line.  (The earlier
+            parser grabbed only the last wrapped continuation fragment, which
+            silently truncated multi-term answers like ∫1/(x⁴+1) — a defect that
+            manufactured false GENUINE_DISAGREE flags.)
+          * `string()` produces the 1-D infix form.
+          * Sentinels `<<<` … `>>>` bracket the answer for unambiguous extraction.
+          * `assume(var > 0)` prevents Maxima from blocking on an interactive
+            sign question in batch mode.  (This biases the *form* toward the
+            positive branch but not the correctness of the derivative.)
+        """
         batch = (
-            f"display2d: false$ ratprint: false$ "
+            f"display2d: false$ ratprint: false$ linel: 1000000$ "
             f"assume({var} > 0)$ "
-            f"result: integrate({integrand}, {var})$ "
-            f"print(result)$"
+            f"r: integrate({integrand}, {var})$ "
+            f'print("<<<", string(r), ">>>")$'
         )
         try:
             proc = subprocess.run(
                 ["maxima", "--quiet", "--batch-string", batch],
-                capture_output=True, text=True, timeout=15,
+                capture_output=True, text=True, timeout=20,
             )
-            output = proc.stdout
-            # Maxima prints the result after "(%o...)" prompts; grab the last one.
-            lines = [ln.strip() for ln in output.splitlines() if ln.strip()]
-            for ln in reversed(lines):
-                if not ln.startswith("(") or "%" not in ln:
-                    # Plain expression line — clean up and return
-                    return _maxima_to_canonical(ln)
-                m = re.match(r"\(%o\d+\)\s+(.*)", ln)
-                if m:
-                    return _maxima_to_canonical(m.group(1))
         except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
-            pass
+            return None
+
+        # Extract the sentinel-bracketed answer. Maxima echoes the print() call
+        # too, so take the line that BEGINS with the sentinel (the actual output),
+        # not the echoed source line that contains it mid-string.
+        for ln in proc.stdout.splitlines():
+            s = ln.strip()
+            if s.startswith("<<<") and s.endswith(">>>"):
+                inner = s[3:-3].strip()
+                return _maxima_to_canonical(inner)
         return None
 
 

@@ -24,7 +24,17 @@
 --   3. autodischarge_XXX_sympy_form   — SymPy form HasDerivAt (derived independently)
 --   4. adjudicate_XXX                 — both forms certify the same derivative
 --
--- This is the first formally kernel-verified CAS agreement adjudication.
+-- SCOPE (read before citing): this is a *single-kernel* (Lean) adjudication of
+-- *notational* disagreements — cases where two CAS write the same function two
+-- ways and the kernel proves them equal.  It is NOT:
+--   * a two-kernel adjudication (no Coq theorem here; see cross_prover/ for the
+--     separate per-integral two-kernel certificates),
+--   * a detection of a CAS being *wrong* (no GENUINE_DISAGREE is adjudicated
+--     here — every case below has both CAS correct),
+--   * a domain/branch-cut adjudication (those are tracked as DOMAIN classes in
+--     the Python layer and are not yet kernel-proved).
+-- What it is: a small, honest, kernel-checked demonstration that the apparent
+-- FriCAS-vs-SymPy log-form disagreement dissolves under Real.log_mul.
 import Mathlib.Analysis.SpecialFunctions.Log.Deriv
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
 import Mathlib.Tactic

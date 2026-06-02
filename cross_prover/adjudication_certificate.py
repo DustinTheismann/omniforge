@@ -335,3 +335,69 @@ def lean_adjudication_theorems() -> list[str]:
     import re
     text = _LEAN_SRC.read_text()
     return re.findall(r"^theorem\s+(\w+)", text, re.MULTILINE)
+
+
+def validate_kernel_adjudication_lemmas() -> list[str]:
+    """
+    Verify that every kernel-adjudicated certificate references a Lean theorem
+    that actually exists in the committed CasAdjudication.lean file.
+
+    This closes the gap between the Python claim "is_kernel_adjudicated=True"
+    and the Lean reality: a certificate may only claim kernel adjudication if
+    the equivalence lemma (and, when present, the per-form HasDerivAt theorems)
+    it names are present in the source the Lean CI typechecks.
+
+    Returns a list of human-readable error strings.  Empty list ⇒ all good.
+
+    Raised intent: this is called by tests AND can be wired into CI so a
+    certificate can never silently claim a proof that isn't there.
+    """
+    errors: list[str] = []
+    theorems = set(lean_adjudication_theorems())
+    if not theorems:
+        return ["CasAdjudication.lean missing or contains no theorems."]
+
+    # 1. Every entry in the FORM_EQUIV map must name real theorems.
+    for integrand, info in _FORM_EQUIV_LEMMAS.items():
+        for field_name in ("equivalence_lemma", "sympy_theorem", "fricas_theorem"):
+            name = info.get(field_name)
+            if name and name not in theorems:
+                errors.append(
+                    f"{integrand!r}: {field_name}={name!r} not found in "
+                    f"CasAdjudication.lean (have: {sorted(theorems)})"
+                )
+
+    # 2. Every certificate the builder marks kernel-adjudicated must point at a
+    #    real theorem.
+    for cert in certify_all_corpus():
+        if cert.is_kernel_adjudicated:
+            if not cert.lean_equivalence_lemma:
+                errors.append(
+                    f"{cert.integrand!r}: is_kernel_adjudicated but no "
+                    f"lean_equivalence_lemma set."
+                )
+            elif cert.lean_equivalence_lemma not in theorems:
+                errors.append(
+                    f"{cert.integrand!r}: lean_equivalence_lemma="
+                    f"{cert.lean_equivalence_lemma!r} not in CasAdjudication.lean."
+                )
+
+    return errors
+
+
+def main() -> None:
+    """CLI: validate kernel-adjudication lemma references (exit 1 on mismatch)."""
+    import sys
+    errors = validate_kernel_adjudication_lemmas()
+    if errors:
+        print("FAIL: kernel-adjudication lemma validation found problems:")
+        for e in errors:
+            print(f"  - {e}")
+        sys.exit(1)
+    n_ka = sum(1 for c in certify_all_corpus() if c.is_kernel_adjudicated)
+    print(f"OK: all {n_ka} kernel-adjudicated certificates reference real "
+          f"theorems in CasAdjudication.lean.")
+
+
+if __name__ == "__main__":
+    main()

@@ -16,6 +16,7 @@ from cross_prover.adjudication_certificate import (
     certify_all_corpus,
     lean_adjudication_file_exists,
     lean_adjudication_theorems,
+    validate_kernel_adjudication_lemmas,
 )
 
 
@@ -262,3 +263,37 @@ def test_adjudication_kinds_complete():
     assert AdjudicationKind.DOMAIN_RESTRICTED.value == "domain_restricted"
     assert AdjudicationKind.NOT_ADJUDICATED.value == "not_adjudicated"
     assert AdjudicationKind.GENUINE_DISAGREE.value == "genuine_disagree"
+
+
+# ---------------------------------------------------------------------------
+# Task 6 — kernel-adjudicated certs must reference real Lean theorems
+# ---------------------------------------------------------------------------
+
+def test_kernel_adjudication_lemmas_validate_clean():
+    """Every is_kernel_adjudicated cert points at a theorem in CasAdjudication.lean."""
+    errors = validate_kernel_adjudication_lemmas()
+    assert errors == [], "Kernel-adjudication lemma mismatches:\n" + "\n".join(errors)
+
+
+def test_every_kernel_adjudicated_lemma_in_lean_file():
+    theorems = set(lean_adjudication_theorems())
+    for cert in certify_all_corpus():
+        if cert.is_kernel_adjudicated:
+            assert cert.lean_equivalence_lemma in theorems, (
+                f"{cert.integrand!r} claims kernel adjudication but its lemma "
+                f"{cert.lean_equivalence_lemma!r} is not in CasAdjudication.lean"
+            )
+
+
+def test_validator_catches_phantom_theorem(monkeypatch):
+    """If a cert references a non-existent theorem, the validator must flag it."""
+    import cross_prover.adjudication_certificate as ac
+    fake = dict(ac._FORM_EQUIV_LEMMAS)
+    fake["__phantom__"] = {
+        "equivalence_lemma": "theorem_that_does_not_exist",
+        "lean_file": "fricas_bridge/CasAdjudication.lean",
+        "adjudication_note": "phantom",
+    }
+    monkeypatch.setattr(ac, "_FORM_EQUIV_LEMMAS", fake)
+    errors = ac.validate_kernel_adjudication_lemmas()
+    assert any("theorem_that_does_not_exist" in e for e in errors)

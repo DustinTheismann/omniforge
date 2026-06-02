@@ -11,14 +11,25 @@ and classifies the disagreement precisely:
                      FriCAS log(a)/2 + log(b)/2 vs SymPy log(a*b)/2.  These
                      forms are equal on the principal real domain but may differ
                      as complex-valued functions (branch-cut choice).
-  DOMAIN_DISAGREE    Answers differ in domain of validity on the real line, e.g.
-                     Maxima acosh(x) (only real for x ≥ 1) vs SymPy log(x +
-                     sqrt(x²-1)) (extends via complex log).
+  DOMAIN_DISAGREE    Answers differ in domain of validity / named functions.
+                     Refined by DomainSubclass into:
+                       special_fn_repr        same fn, different special-function
+                                              notation (asinh vs log) — NOT yet
+                                              kernel-adjudicated
+                       analytic_continuation  agree on a real interval, differ by
+                                              πi branch terms in ℂ
+                       true_domain_divergence valid on different real domains and
+                                              unequal on the overlap (closest to
+                                              a real bug)
   GENUINE_DISAGREE   At least one answer fails the derivative check (potential
                      CAS bug or incorrect side-condition handling).
   ONE_MISSING        Exactly one CAS returned no result.
   TWO_MISSING        Exactly two CAS returned no result.
   BOTH_MISSING / ALL_MISSING  No CAS returned a result.
+
+IMPORTANT — the derivative check is TRIAGE, not proof.  A GENUINE_DISAGREE flag
+means "a candidate worth a kernel rejection proof", never "proven wrong".  The
+binding verdict is always a Lean/Coq kernel theorem.
 
 A KernelAdjudicationPlan is generated for FORM_DISAGREE and DOMAIN_DISAGREE
 cases: it lists the Lean HasDerivAt statement that would need to be proved for
@@ -28,11 +39,15 @@ plan is a specification, not a running prover — the Lean CI is the arbiter.
 Public API
 ----------
 DisagreementClass               Enum
-DisagreementReport              dataclass
+DomainSubclass                  Enum  (refinement of DOMAIN_DISAGREE)
+DisagreementReport              dataclass (has .domain_subclass)
 KernelAdjudicationPlan          dataclass
-compare_triple(integrand, var)  → DisagreementReport
+compare_triple(integrand, var)  → DisagreementReport   (all offline)
+compare_live(integrand, var)    → DisagreementReport   (SymPy online)
+compare_live_all(integrand, var)→ DisagreementReport   (SymPy + Maxima online)
 scan_corpus(entries)            → list[DisagreementReport]
 scan_bronstein()                → list[DisagreementReport]
+scan_live / scan_live_all       → list[DisagreementReport]
 """
 from __future__ import annotations
 
@@ -55,6 +70,36 @@ class DisagreementClass(str, Enum):
     ONE_MISSING      = "one_missing"
     TWO_MISSING      = "two_missing"
     ALL_MISSING      = "all_missing"
+
+
+class DomainSubclass(str, Enum):
+    """
+    Refinement of DOMAIN_DISAGREE.  The top-level class stays DOMAIN_DISAGREE
+    (stable across tooling); this names *why* the domains differ so the
+    adjudication layer can pick the right treatment.
+
+    SPECIAL_FN_REPR
+        The two answers are the *same function* written with different named
+        special functions — e.g. Maxima asinh(x) vs SymPy log(x+√(x²+1)).
+        They are equal everywhere both are real-defined.  Not a real
+        disagreement; just two notations.  NOT yet kernel-adjudicated because
+        Mathlib would need the asinh/acosh ↔ log identity proved first.
+
+    ANALYTIC_CONTINUATION
+        The answers agree on a real interval but their complex continuations
+        differ by branch-cut terms (multiples of πi) on disconnected components
+        of the domain — the log(∏)/Σlog story when the factors can be negative.
+        Both are valid real antiderivatives; they differ by a locally-constant
+        imaginary offset.
+
+    TRUE_DOMAIN_DIVERGENCE
+        The answers are valid on genuinely different real domains and are NOT
+        equal on the overlap.  This is the dangerous case — closest to a real
+        bug — and is flagged for kernel scrutiny rather than dismissed.
+    """
+    SPECIAL_FN_REPR        = "special_fn_repr"
+    ANALYTIC_CONTINUATION  = "analytic_continuation"
+    TRUE_DOMAIN_DIVERGENCE = "true_domain_divergence"
 
 
 @dataclass
@@ -85,6 +130,7 @@ class DisagreementReport:
     derivative_correct: dict[str, bool]    # {source: correct?} — SymPy-verified
     adjudication_plan: Optional[KernelAdjudicationPlan] = None
     notes: str = ""
+    domain_subclass: Optional[str] = None  # DomainSubclass value when DOMAIN_DISAGREE
 
 
 # ---------------------------------------------------------------------------
@@ -206,6 +252,26 @@ def _forms_are_inverse_hyp_vs_log(a: str, b: str) -> bool:
     )
 
 
+def _domain_subclass(a: str, b: str, var: str = "x") -> "DomainSubclass":
+    """
+    Refine a DOMAIN_DISAGREE into SPECIAL_FN_REPR / ANALYTIC_CONTINUATION /
+    TRUE_DOMAIN_DIVERGENCE.
+
+    Heuristics (triage only — a kernel proof is the binding verdict):
+      * One side names an inverse-hyperbolic (acosh/asinh/atanh) and the other a
+        logarithm  →  SPECIAL_FN_REPR (same function, two notations).
+      * Both are log-based and their difference is locally constant (the πi /
+        log(∏) vs Σlog story)  →  ANALYTIC_CONTINUATION.
+      * Difference is not locally constant on the overlap  →
+        TRUE_DOMAIN_DIVERGENCE.
+    """
+    if _forms_are_inverse_hyp_vs_log(a, b):
+        return DomainSubclass.SPECIAL_FN_REPR
+    if _is_locally_constant_difference(a, b, var):
+        return DomainSubclass.ANALYTIC_CONTINUATION
+    return DomainSubclass.TRUE_DOMAIN_DIVERGENCE
+
+
 # ---------------------------------------------------------------------------
 # Lean theorem text generation for adjudication plans
 # ---------------------------------------------------------------------------
@@ -278,6 +344,10 @@ def compare_triple(integrand: str, var: str = "x") -> DisagreementReport:
             deriv_correct[src] = ok
 
     cls, notes, plan = _classify(integrand, var, present, deriv_correct)
+    domain_subclass = (
+        _compute_domain_subclass(present, var)
+        if cls == DisagreementClass.DOMAIN_DISAGREE else None
+    )
 
     return DisagreementReport(
         integrand=integrand,
@@ -290,6 +360,7 @@ def compare_triple(integrand: str, var: str = "x") -> DisagreementReport:
         derivative_correct=deriv_correct,
         adjudication_plan=plan,
         notes=notes,
+        domain_subclass=domain_subclass,
     )
 
 
@@ -375,6 +446,20 @@ def _classify(
     )
 
 
+def _compute_domain_subclass(present: dict[str, str], var: str) -> Optional[str]:
+    """
+    When the verdict is DOMAIN_DISAGREE, name the subclass by inspecting the
+    present antiderivative pair(s).  Returns a DomainSubclass value or None if
+    no two distinct present forms exist.
+    """
+    vals = [v for v in present.values() if v]
+    for i in range(len(vals)):
+        for j in range(i + 1, len(vals)):
+            if _norm(vals[i]) != _norm(vals[j]):
+                return _domain_subclass(vals[i], vals[j], var).value
+    return None
+
+
 def _build_adjudication_plan(
     integrand: str, var: str, present: dict[str, str]
 ) -> KernelAdjudicationPlan:
@@ -458,6 +543,10 @@ def compare_live(integrand: str, var: str = "x") -> DisagreementReport:
             deriv_correct[src] = ok
 
     cls, notes, plan = _classify(integrand, var, present, deriv_correct)
+    domain_subclass = (
+        _compute_domain_subclass(present, var)
+        if cls == DisagreementClass.DOMAIN_DISAGREE else None
+    )
 
     return DisagreementReport(
         integrand=integrand,
@@ -470,14 +559,81 @@ def compare_live(integrand: str, var: str = "x") -> DisagreementReport:
         derivative_correct=deriv_correct,
         adjudication_plan=plan,
         notes=notes,
+        domain_subclass=domain_subclass,
+    )
+
+
+def compare_live_all(integrand: str, var: str = "x") -> DisagreementReport:
+    """
+    Fully-live two-CAS comparison: SymPy AND Maxima are both queried online.
+
+    Unlike compare_live (which only runs SymPy live and reads Maxima from the
+    committed offline cache), this spawns both CAS subprocesses.  It is the
+    scan path used by the live CI hunt (cross_prover.cas_hunt): no hand-authored
+    table is consulted for SymPy or Maxima — the answers come straight from the
+    installed CAS.  FriCAS, which has no apt package, is still read from its
+    offline cache (None on a miss).
+
+    The derivative-correctness gate is SymPy's `diff`, used as triage only.
+    A False here flags a candidate GENUINE_DISAGREE; the binding verdict for any
+    such case is a Lean/Coq kernel proof, never this check.
+    """
+    from fricas_bridge.sympy_resolver import SymPyResolver as SR
+
+    fricas = FriCASResolver(mode="offline").resolve(integrand, var)
+    fricas_result = fricas.antiderivative if fricas.ok else None
+    sympy_result  = SR(mode="online").integrate(integrand, var)
+    maxima_result = MaximaResolver(mode="online").integrate(integrand, var)
+
+    results = {
+        "FriCAS": fricas_result,
+        "SymPy":  sympy_result,
+        "Maxima": maxima_result,
+    }
+    present = {k: v for k, v in results.items() if v is not None}
+
+    deriv_correct: dict[str, bool] = {}
+    for src, antideriv in present.items():
+        ok = _sympy_deriv_correct(antideriv, integrand, var)
+        if ok is not None:
+            deriv_correct[src] = ok
+
+    cls, notes, plan = _classify(integrand, var, present, deriv_correct)
+    domain_subclass = (
+        _compute_domain_subclass(present, var)
+        if cls == DisagreementClass.DOMAIN_DISAGREE else None
+    )
+
+    return DisagreementReport(
+        integrand=integrand,
+        var=var,
+        fricas_result=fricas_result,
+        sympy_result=sympy_result,
+        maxima_result=maxima_result,
+        disagreement=cls.value,
+        present_count=len(present),
+        derivative_correct=deriv_correct,
+        adjudication_plan=plan,
+        notes=notes,
+        domain_subclass=domain_subclass,
     )
 
 
 def scan_live(integrands: list[str], var: str = "x") -> list[DisagreementReport]:
     """
-    Scan a list of integrand strings using live SymPy queries.
+    Scan a list of integrand strings using live SymPy queries
+    (SymPy online, Maxima + FriCAS offline).
 
     Returns a report for each integrand, including any newly discovered
     disagreements not covered by the offline corpus.
     """
     return [compare_live(ig, var) for ig in integrands]
+
+
+def scan_live_all(integrands: list[str], var: str = "x") -> list[DisagreementReport]:
+    """
+    Fully-live batch scan: both SymPy and Maxima are queried online for every
+    integrand (see compare_live_all).  This is the discovery path — no
+    hand-authored table is consulted for the two live CAS.
+    """
+    return [compare_live_all(ig, var) for ig in integrands]
