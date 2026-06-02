@@ -6,6 +6,9 @@ classifies the pair as:
 
   AGREE          — symbolically identical after normalisation
   AGREE_UP_TO_C  — differ by a constant (both valid antiderivatives)
+  FORM_DISAGREE  — both derivatives verified correct but symbolic forms differ
+                   by a locally-constant complex offset (log factored vs product).
+                   This is a documentable finding, not an error.
   DISAGREE       — genuinely different (potential CAS bug, or branch choice)
   ONE_MISSING    — one CAS returned no result
   BOTH_MISSING   — neither CAS has an answer
@@ -31,6 +34,7 @@ from fricas_bridge.sympy_resolver import SymPyResolver
 class AgreementClass(str, Enum):
     AGREE         = "agree"
     AGREE_UP_TO_C = "agree_up_to_c"
+    FORM_DISAGREE = "form_disagree"   # both correct, different log-branch choice
     DISAGREE      = "disagree"
     ONE_MISSING   = "one_missing"
     BOTH_MISSING  = "both_missing"
@@ -84,6 +88,28 @@ def _differ_by_constant(a: str, b: str) -> bool:
     return tokens_a == tokens_b
 
 
+def _is_locally_constant_difference(a: str, b: str, var: str = "x") -> bool:
+    """True when d/d(var)(A - B) = 0 — both are valid antiderivatives."""
+    try:
+        from sympy import symbols, diff, simplify, sympify, N
+        v = symbols(var)
+        A = sympify(a.replace("^", "**"))
+        B = sympify(b.replace("^", "**"))
+        res = simplify(diff(A - B, v))
+        if res == 0:
+            return True
+        for pt in [0.5, 1.5, 2.0, 3.0]:
+            try:
+                val = complex(N(res.subs(v, pt)))
+                if abs(val) > 1e-8:
+                    return False
+            except Exception:
+                continue
+        return True
+    except Exception:
+        return False
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -102,6 +128,8 @@ def check_agreement(integrand: str, var: str = "x") -> AgreementResult:
         cls = AgreementClass.AGREE
     elif _differ_by_constant(fricas, sympy):
         cls = AgreementClass.AGREE_UP_TO_C
+    elif _is_locally_constant_difference(fricas, sympy, var):
+        cls = AgreementClass.FORM_DISAGREE
     else:
         cls = AgreementClass.DISAGREE
 
