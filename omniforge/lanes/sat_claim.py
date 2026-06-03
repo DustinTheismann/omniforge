@@ -2,9 +2,10 @@
 Convert a three-checker SatExecResult into a ProofForge Ω Claim + Runpack.
 
 Evidence classification path:
-  E6  — CaDiCaL (sat family) confirms UNSAT with a proof
-  E7  — cake_lpr (HOL4-verified, formal family, formal_verified=True) accepts the LRAT proof
-  E8  — two independent checker families (sat + formal) agree → CROSS_VERIFIED
+  E6  — cadical/drat-trim/lrat-trim (sat family) confirm UNSAT with a proof
+  E7  — cake_lpr (HOL4-verified, formal_verified=True) accepts the LRAT proof
+        → E7_FORMALLY_VERIFIED (one formal kernel)
+  E8  — reserved for ≥2 independent formal kernel systems (e.g. cake_lpr + Isabelle)
 
 The claim is returned as a plain dict that validates against
 protocols/claim_protocol/schema.json.  The runpack is a

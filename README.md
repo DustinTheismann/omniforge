@@ -17,11 +17,11 @@ A **lane-based verifiable algorithm foundry**. Every claim that passes through P
 ### SAT Lane — three-checker UNSAT verification
 **Status: live, HOL4-verified trust anchor.**
 
-Full pipeline: CaDiCaL (solver) → drat-trim (DRAT gate) → lrat-trim (LRAT gate) → cake_lpr (formal gate).
+Pipeline: CaDiCaL (solver, untrusted producer) → drat-trim (DRAT checker) → lrat-trim (LRAT checker) → cake_lpr (formal gate, trust anchor).
 
-`cake_lpr` is a CakeML binary whose LRAT-checking logic is **formally proven correct in HOL4**. Its acceptance of the LRAT proof (`s VERIFIED UNSAT` + exit 0) is a formal soundness guarantee, not a heuristic check. All three gates are fail-closed: the UNSAT verdict is rejected if any gate fails.
+`cake_lpr` is a CakeML binary whose LRAT-checking logic is **formally proven correct in HOL4**. Its acceptance of the LRAT proof (`s VERIFIED UNSAT` + exit 0) is a formal soundness guarantee. drat-trim and lrat-trim are corroboration; cake_lpr is the trust anchor. All gates are fail-closed.
 
-Result: `unsat_certificate` claims grade at **E8_CROSS_VERIFIED** — two independent checker families (SAT family: cadical/drat-trim/lrat-trim; formal family: cake_lpr) both verify the same proof.
+Result: `unsat_certificate` claims grade at **E7_FORMALLY_VERIFIED** — one formal kernel (cake_lpr/HOL4) independently verifies the proof. Adding a second independent formal system (e.g. Isabelle-verified gratchk) would lift to E8_CROSS_VERIFIED.
 
 ### Integration Lane — CAS × Lean 4 adjudication
 **Status: live, kernel-verified.**
@@ -29,14 +29,14 @@ Result: `unsat_certificate` claims grade at **E8_CROSS_VERIFIED** — two indepe
 Pipeline: FriCAS Risch integration → symbolic derivative residual check (SymPy/Maxima) → Lean 4 kernel proof.
 
 Live two-CAS scan (SymPy + Maxima) over 191 integrands found 0 net genuine CAS errors after review.
-- `fricas_bridge/CasAdjudication.lean`: 10 Lean 4 theorems, 0 sorry, 0 axiom.
-- `fricas_bridge/RischVerification.lean`: 9 Lean 4 theorems, 0 sorry, 0 axiom — first kernel-verified FriCAS Risch certificates.
+- 31 Lean 4 theorems/lemmas across core library files (CasAdjudication, RischVerification, RischAutoDischarge, PartialFractionHasDerivAt), 0 sorry, 0 axiom.
+- First kernel-verified FriCAS Risch certificates.
 
 ---
 
 ## One-command demo
 
-Runs the full three-checker SAT pipeline on a benchmark CNF, emits a claim at E8_CROSS_VERIFIED, and validates the artifact bundle.
+Runs the full three-checker SAT pipeline on a benchmark CNF, emits an `unsat_certificate` claim at E7_FORMALLY_VERIFIED, and validates the artifact bundle.
 
 ```bash
 make demo
@@ -44,7 +44,7 @@ make demo
 
 Produces:
 - `artifacts/run_<run_id>/manifest.json`
-- `artifacts/run_<run_id>/claim.json` — unsat_certificate at E8_CROSS_VERIFIED
+- `artifacts/run_<run_id>/claim.json` — unsat_certificate at E7_FORMALLY_VERIFIED
 - `artifacts/run_<run_id>/runpacks/<claim_id>/manifest.json` — sealed runpack
 
 ## Run the tests

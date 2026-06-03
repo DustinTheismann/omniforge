@@ -79,7 +79,7 @@
       "notes": "Output: 's VERIFIED UNSAT'. Acceptance is a formal soundness guarantee, not a heuristic check."
     }
   ],
-  "evidence_class": "E8_CROSS_VERIFIED",
+  "evidence_class": "E7_FORMALLY_VERIFIED",
   "flags": [],
   "artifacts": {
     "runpack": "runpacks/pf.unsat.000001/manifest.json",

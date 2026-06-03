@@ -137,7 +137,8 @@ def test_sorry_proof_does_not_reach_e7():
 # Cross-verified → E8
 # ---------------------------------------------------------------------------
 
-def test_two_families_reaches_e8():
+def test_lean_plus_sympy_reaches_e7_not_e8():
+    """Lean4 (formal) + SymPy (CAS) → E7, not E8. CAS is not a formal kernel."""
     claim = _claim(
         obligations=[{"obligation_id": "o1", "kind": "formal_theorem", "status": "passed"}],
         checker_results=[
@@ -145,6 +146,22 @@ def test_two_families_reaches_e8():
             {"checker": "sympy", "result": "supported", "formal_verified": False},
         ],
         formal_targets=[{"system": "Lean4", "status": "proved"}]
+    )
+    assert grade(claim) == EvidenceClass.E7_FORMALLY_VERIFIED
+
+
+def test_two_formal_kernels_reaches_e8():
+    """Lean4 + Coq → 2 independent formal systems → E8_CROSS_VERIFIED."""
+    claim = _claim(
+        obligations=[{"obligation_id": "o1", "kind": "formal_theorem", "status": "passed"}],
+        checker_results=[
+            {"checker": "lean4", "result": "passed", "formal_verified": True},
+            {"checker": "coq",   "result": "passed", "formal_verified": True},
+        ],
+        formal_targets=[
+            {"system": "Lean4", "status": "proved"},
+            {"system": "Coq",   "status": "proved"},
+        ]
     )
     assert grade(claim) == EvidenceClass.E8_CROSS_VERIFIED
 
@@ -202,11 +219,16 @@ def test_downgrade_does_not_mutate_original():
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("checker,expected", [
-    ("lean4", "formal"), ("Lean4", "formal"), ("lean", "formal"),
-    ("coq", "formal"), ("isabelle", "formal"),
+    # Each formal proof system has its own unique family name
+    ("lean4", "lean4"), ("Lean4", "lean4"), ("lean", "lean4"),
+    ("coq", "coq"), ("rocq", "coq"),
+    ("isabelle", "isabelle"),
+    ("agda", "agda"),
+    ("cake_lpr", "cake_lpr"),
+    # Non-formal families remain as before
     ("fricas", "cas"), ("sympy", "cas"), ("maxima", "cas"),
     ("z3", "smt"), ("cvc5", "smt"),
-    ("cadical", "sat"), ("kissat", "sat"),
+    ("cadical", "sat"), ("kissat", "sat"), ("drat-trim", "sat"), ("lrat-trim", "sat"),
     ("hypothesis", "numeric"), ("pytest", "numeric"), ("interval_arithmetic", "numeric"),
     ("docker_repro", "repro"), ("notebook_repro", "repro"),
     ("something_else", "other"),

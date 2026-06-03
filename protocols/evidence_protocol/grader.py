@@ -5,9 +5,13 @@ Given a claim's checker_results, obligations, formal_targets, and flags,
 computes the highest evidence class the claim is entitled to, applying all
 upgrade gates and the EX_REFUTED override.
 
-Key invariant: ``EX_REFUTED`` overrides everything.
-Key invariant: ``E7_FORMALLY_VERIFIED`` requires ``formal_verified == True``
-               on a checker result — it cannot be reached by LLM assertion.
+Key invariants:
+  ``EX_REFUTED`` overrides everything.
+  ``E7_FORMALLY_VERIFIED`` requires ``formal_verified == True`` on a checker
+  result — it cannot be reached by LLM assertion.
+  ``E8_CROSS_VERIFIED`` requires ≥2 independent formal kernel systems to each
+  report ``formal_verified == True``. SAT/CAS/SMT corroboration is valuable
+  and contributes to E6 but does not satisfy the E8 gate on its own.
 """
 from __future__ import annotations
 
@@ -19,13 +23,23 @@ from protocols.claim_protocol.types import EvidenceClass, ClaimFlag
 # ---------------------------------------------------------------------------
 # Checker family classification
 # ---------------------------------------------------------------------------
+# Each formal proof system gets its own unique family name so that
+# Lean+Coq counts as two independent formal anchors (→ E8), while
+# Lean alone or cake_lpr alone counts as one (→ E7).
 
-_FORMAL_CHECKERS = frozenset({
-    "lean4", "lean", "coq", "rocq", "isabelle", "agda",
-    # cake_lpr: CakeML binary whose LRAT-checking logic is proven correct in HOL4.
-    # It carries the same formal_verified guarantee as a kernel proof checker.
-    "cake_lpr",
-})
+_FORMAL_CHECKERS: dict[str, str] = {
+    "lean4":    "lean4",
+    "lean":     "lean4",
+    "coq":      "coq",
+    "rocq":     "coq",
+    "isabelle": "isabelle",
+    "agda":     "agda",
+    # cake_lpr: CakeML binary whose LRAT-checking logic is proven correct in
+    # HOL4. Carries the same formal_verified guarantee as a proof kernel.
+    "cake_lpr": "cake_lpr",
+}
+_FORMAL_FAMILIES = frozenset(_FORMAL_CHECKERS.values())
+
 _CAS_CHECKERS    = frozenset({"fricas", "sympy", "maxima", "sage", "mathematica"})
 _SMT_CHECKERS    = frozenset({"z3", "cvc5", "cvc4"})
 _SAT_CHECKERS    = frozenset({
@@ -40,12 +54,12 @@ _REPRO_CHECKERS  = frozenset({"docker_repro", "nix_repro", "pytest_repro", "note
 
 def _checker_family(checker_name: str) -> str:
     name = checker_name.lower()
-    if name in _FORMAL_CHECKERS:     return "formal"
-    if name in _CAS_CHECKERS:        return "cas"
-    if name in _SMT_CHECKERS:        return "smt"
-    if name in _SAT_CHECKERS:        return "sat"
-    if name in _NUMERIC_CHECKERS:    return "numeric"
-    if name in _REPRO_CHECKERS:      return "repro"
+    if name in _FORMAL_CHECKERS:  return _FORMAL_CHECKERS[name]
+    if name in _CAS_CHECKERS:     return "cas"
+    if name in _SMT_CHECKERS:     return "smt"
+    if name in _SAT_CHECKERS:     return "sat"
+    if name in _NUMERIC_CHECKERS: return "numeric"
+    if name in _REPRO_CHECKERS:   return "repro"
     return "other"
 
 
@@ -147,15 +161,18 @@ def grade(claim: dict[str, Any]) -> EvidenceClass:
     if formal_verified:
         level = max(level, 7)
 
-    # ── E8: cross-verified (2+ distinct families) ────────────────────────────
-    passing_families = {
+    # ── E8: cross-verified by ≥2 independent formal kernel systems ──────────
+    # Requires two distinct proof systems (lean4, coq, isabelle, cake_lpr, …)
+    # to each independently report formal_verified=True. SAT/CAS/SMT is
+    # valuable corroboration (→ E6) but does not satisfy this gate.
+    formal_passing_systems = {
         _checker_family(r.get("checker", ""))
         for r in checker_results
-        if r.get("result") in ("passed", "supported")
-        or r.get("formal_verified") is True
+        if r.get("formal_verified") is True
+        and r.get("result") == "passed"
+        and _checker_family(r.get("checker", "")) in _FORMAL_FAMILIES
     }
-    passing_families.discard("other")
-    if len(passing_families) >= 2 and level >= 7:
+    if len(formal_passing_systems) >= 2 and level >= 7:
         level = max(level, 8)
 
     # ── E9: adversarially hardened ───────────────────────────────────────────

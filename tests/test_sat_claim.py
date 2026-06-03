@@ -58,7 +58,7 @@ def test_unsat_certificate_claim_type_exists():
 # ---------------------------------------------------------------------------
 
 def test_cake_lpr_is_formal_family():
-    assert _checker_family("cake_lpr") == "formal"
+    assert _checker_family("cake_lpr") == "cake_lpr"
 
 
 def test_drat_trim_is_sat_family():
@@ -69,17 +69,22 @@ def test_lrat_trim_is_sat_family():
     assert _checker_family("lrat-trim") == "sat"
 
 
-def test_unsat_claim_grades_e8(tmp_path):
-    """A full three-checker UNSAT claim must grade at E8_CROSS_VERIFIED."""
+def test_unsat_claim_grades_e7(tmp_path):
+    """Three-checker UNSAT claim with cake_lpr alone grades at E7_FORMALLY_VERIFIED.
+
+    E8 requires ≥2 independent formal kernel systems. The SAT lane currently
+    has one formal anchor (cake_lpr/HOL4). drat-trim and lrat-trim are sat-family
+    corroboration, not independent formal kernels.
+    """
     cnf = tmp_path / "test.cnf"
     cnf.write_text("p cnf 1 2\n1 0\n-1 0\n")
     res = _mock_unsat_result(cnf)
     claim_dict, _ = claim_from_sat_result(res, cnf_path=cnf, run_id="test_run_001")
-    assert claim_dict["evidence_class"] == EvidenceClass.E8_CROSS_VERIFIED.value
+    assert claim_dict["evidence_class"] == EvidenceClass.E7_FORMALLY_VERIFIED.value
 
 
-def test_unsat_claim_grades_e8_via_grader():
-    """Grade function directly: sat + formal families → E8."""
+def test_unsat_claim_grades_e7_via_grader():
+    """Grade function directly: cake_lpr (1 formal system) + sat family → E7."""
     claim = {
         "source": {"kind": "benchmark", "name": "cadical"},
         "checker_results": [
@@ -89,6 +94,29 @@ def test_unsat_claim_grades_e8_via_grader():
             {"checker": "cake_lpr",  "result": "passed", "formal_verified": True},
         ],
         "formal_targets": [{"system": "other", "status": "proved"}],
+        "obligations": [
+            {"obligation_id": "o1", "kind": "formal_theorem", "status": "passed"},
+        ],
+        "assumptions": [],
+        "flags": [],
+        "metadata": {},
+    }
+    assert grade(claim) == EvidenceClass.E7_FORMALLY_VERIFIED
+
+
+def test_two_formal_sat_checkers_grade_e8():
+    """cake_lpr + isabelle (2 independent formal systems) → E8_CROSS_VERIFIED."""
+    claim = {
+        "source": {"kind": "benchmark", "name": "cadical"},
+        "checker_results": [
+            {"checker": "cadical",   "result": "passed", "formal_verified": False},
+            {"checker": "cake_lpr",  "result": "passed", "formal_verified": True},
+            {"checker": "isabelle",  "result": "passed", "formal_verified": True},
+        ],
+        "formal_targets": [
+            {"system": "other",    "status": "proved"},
+            {"system": "isabelle", "status": "proved"},
+        ],
         "obligations": [
             {"obligation_id": "o1", "kind": "formal_theorem", "status": "passed"},
         ],
@@ -215,7 +243,8 @@ def test_example_unsat_000001_validates():
     assert errors == [], f"unsat_000001.json schema errors: {errors}"
 
 
-def test_example_unsat_000001_grades_e8():
+def test_example_unsat_000001_grades_e7():
+    """unsat_000001.json has one formal anchor (cake_lpr) → E7_FORMALLY_VERIFIED."""
     path = ROOT / "protocols" / "claim_protocol" / "examples" / "unsat_000001.json"
     claim = json.loads(path.read_text())
-    assert grade(claim) == EvidenceClass.E8_CROSS_VERIFIED
+    assert grade(claim) == EvidenceClass.E7_FORMALLY_VERIFIED

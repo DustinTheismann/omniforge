@@ -203,16 +203,31 @@ All foundries share the same backbone protocols.
 
 ## Checker Mesh
 
+Each formal proof system has its own unique checker family name in the grader
+(lean4, coq, isabelle, cake_lpr, …). This means Lean+Coq counts as two
+independent formal families; Lean alone counts as one.
+
 | Checker family | Examples | Highest evidence class reachable |
 |---|---|---|
-| Formal | Lean 4, Coq, Isabelle, **cake_lpr** | E8_CROSS_VERIFIED (with sat family) |
-| CAS | FriCAS, SymPy, Maxima, Z3 | E8_CROSS_VERIFIED (with formal family) |
-| SAT | CaDiCaL, drat-trim, lrat-trim | E8_CROSS_VERIFIED (with formal family) |
-| SMT | CVC5, Z3 | E6_SYMBOLICALLY_SUPPORTED |
-| Numeric | Hypothesis, interval arithmetic | E5_NUMERICALLY_SUPPORTED |
-| Repro | Docker replay, notebook exec | E4_REPRODUCED |
+| lean4 | Lean 4 kernel | E8_CROSS_VERIFIED (with ≥1 other formal kernel) |
+| coq | Coq/Rocq kernel | E8_CROSS_VERIFIED (with ≥1 other formal kernel) |
+| isabelle | Isabelle/HOL | E8_CROSS_VERIFIED (with ≥1 other formal kernel) |
+| cake_lpr | cake_lpr (HOL4-proven binary) | E8_CROSS_VERIFIED (with ≥1 other formal kernel) |
+| cas | FriCAS, SymPy, Maxima | E6_SYMBOLICALLY_SUPPORTED |
+| smt | Z3, CVC5 | E6_SYMBOLICALLY_SUPPORTED |
+| sat | CaDiCaL, drat-trim, lrat-trim | E6_SYMBOLICALLY_SUPPORTED |
+| numeric | Hypothesis, interval arithmetic | E5_NUMERICALLY_SUPPORTED |
+| repro | Docker replay, notebook exec | E4_REPRODUCED |
 
-**Note on cake_lpr**: `cake_lpr` is a CakeML binary whose LRAT-checking logic is formally proven correct in HOL4. It is classified in the `formal` checker family. When the SAT lane uses cake_lpr alongside cadical/drat-trim/lrat-trim, the claim has passing checkers in two independent families (sat + formal) → **E8_CROSS_VERIFIED**.
+**E8 gate**: E8_CROSS_VERIFIED requires ≥2 distinct formal kernel systems,
+each reporting `formal_verified=True`. SAT/CAS/SMT corroboration contributes
+to E6 but does not satisfy the E8 gate. Example paths to E8:
+- Integration lane: Lean 4 kernel + Coq kernel both check the same theorem
+- SAT lane: cake_lpr (HOL4) + Isabelle-verified gratchk both check the LRAT proof
+
+**Current status** (v0.4.0):
+- SAT lane: cake_lpr alone → **E7_FORMALLY_VERIFIED** (1 formal kernel)
+- Integration lane: Lean 4 alone → **E7_FORMALLY_VERIFIED** (1 formal kernel)
 
 ---
 
@@ -234,9 +249,9 @@ All foundries share the same backbone protocols.
 | Phase | Deliverable | Status |
 |---|---|---|
 | 0 | Protocol spine (claim, runpack, evidence, obligation, transmutation) | **Done** |
-| 1 | Symbolic integration wedge (FriCAS → Lean 4) | **Done** — 19 proven theorems (0 sorry, 0 axiom) |
+| 1 | Symbolic integration wedge (FriCAS → Lean 4) | **Done** — 31 kernel-verified theorems/lemmas (0 sorry, 0 axiom) |
 | 2 | SymPy/Maxima adapters + cross-CAS disagreement detector | **Done** — live hunt over 191 integrands; 0 net genuine CAS errors |
-| 3 | SAT lane with HOL4-verified formal trust anchor (cake_lpr) | **Done** — three-checker pipeline, E8_CROSS_VERIFIED unsat_certificate |
+| 3 | SAT lane with HOL4-verified formal trust anchor (cake_lpr) | **Done** — three-checker pipeline, E7_FORMALLY_VERIFIED unsat_certificate |
 | 4 | Corpus-scale runner (Rubi/DLMF/Bronstein) | Planned |
 | 5 | Discrepancy atlas + public dashboard | Planned |
 | 6 | Algorithm forge (benchmark claim protocol) | Planned |
