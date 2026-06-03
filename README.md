@@ -29,8 +29,9 @@ Result: `unsat_certificate` claims grade at **E7_FORMALLY_VERIFIED** — one for
 Pipeline: FriCAS Risch integration → symbolic derivative residual check (SymPy/Maxima) → Lean 4 kernel proof.
 
 Live two-CAS scan (SymPy + Maxima) over 191 integrands found 0 net genuine CAS errors after review.
-- 31 Lean 4 theorems/lemmas across core library files (CasAdjudication, RischVerification, RischAutoDischarge, PartialFractionHasDerivAt), 0 sorry, 0 axiom.
+- 29 Lean 4 theorems/lemmas across core library files (CasAdjudication: 10, RischVerification: 9, RischAutoDischarge: 8, PartialFractionHasDerivAt: 2), 0 sorry, 0 axiom. Count is guarded by `tests/test_theorem_count.py`.
 - First kernel-verified FriCAS Risch certificates.
+- Cross-prover certificates: integration claims verified by **two independent formal kernels** (Lean 4 + Coq), reaching **E8_CROSS_VERIFIED** for caveat-free cases (bronstein_003, bronstein_004).
 
 ---
 
