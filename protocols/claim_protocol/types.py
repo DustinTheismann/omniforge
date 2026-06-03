@@ -24,6 +24,7 @@ class ClaimType(str, Enum):
     PAPER_CLAIM             = "paper_claim"
     SIMULATION_RESULT       = "simulation_result"
     CODE_CORRECTNESS        = "code_correctness"
+    UNSAT_CERTIFICATE       = "unsat_certificate"
 
 
 class EvidenceClass(str, Enum):

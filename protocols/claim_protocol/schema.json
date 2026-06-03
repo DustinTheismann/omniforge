@@ -22,7 +22,8 @@
         "numerical_experiment",
         "paper_claim",
         "simulation_result",
-        "code_correctness"
+        "code_correctness",
+        "unsat_certificate"
       ]
     },
     "title": {

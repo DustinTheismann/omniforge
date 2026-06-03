@@ -10,6 +10,7 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 from omniforge.artifacts.manifest import sha256_file
+from omniforge.lanes.sat_claim import claim_from_sat_result
 from omniforge.lanes.sat_lane import run_sat_two_checker
 
 
@@ -102,6 +103,24 @@ def create_demo_run_bundle(root: Path) -> str:
     schema = _load_schema(root, "omniforge/contracts/artifact_manifest.schema.json")
     Draft202012Validator.check_schema(schema)
     Draft202012Validator(schema).validate(manifest)
+
+    # Emit ProofForge Ω claim + runpack — the UNSAT result becomes a first-class
+    # evidence object graded at E8_CROSS_VERIFIED (SAT + formally-verified families).
+    claim_dict, runpack = claim_from_sat_result(res, cnf_path=cnf_dst, run_id=run_id)
+    claim_path = out_dir / "claim.json"
+    claim_path.write_text(json.dumps(claim_dict, indent=2, sort_keys=True), encoding="utf-8")
+    runpack_dir = out_dir / "runpacks" / claim_dict["claim_id"]
+    runpack.save(runpack_dir / "manifest.json")
+
+    # Extend hashes to cover the new artifacts and re-seal the manifest
+    hashes["claim.json"] = sha256_file(claim_path)
+    hashes[f"runpacks/{claim_dict['claim_id']}/manifest.json"] = sha256_file(
+        runpack_dir / "manifest.json"
+    )
+    manifest["hashes"] = hashes
+    manifest["outputs"]["claim_path"] = "claim.json"
+    manifest["outputs"]["runpack_path"] = f"runpacks/{claim_dict['claim_id']}/manifest.json"
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
 
     return run_id
 

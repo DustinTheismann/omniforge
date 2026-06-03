@@ -20,10 +20,19 @@ from protocols.claim_protocol.types import EvidenceClass, ClaimFlag
 # Checker family classification
 # ---------------------------------------------------------------------------
 
-_FORMAL_CHECKERS = frozenset({"lean4", "lean", "coq", "rocq", "isabelle", "agda"})
+_FORMAL_CHECKERS = frozenset({
+    "lean4", "lean", "coq", "rocq", "isabelle", "agda",
+    # cake_lpr: CakeML binary whose LRAT-checking logic is proven correct in HOL4.
+    # It carries the same formal_verified guarantee as a kernel proof checker.
+    "cake_lpr",
+})
 _CAS_CHECKERS    = frozenset({"fricas", "sympy", "maxima", "sage", "mathematica"})
 _SMT_CHECKERS    = frozenset({"z3", "cvc5", "cvc4"})
-_SAT_CHECKERS    = frozenset({"cadical", "kissat", "minisat"})
+_SAT_CHECKERS    = frozenset({
+    "cadical", "kissat", "minisat",
+    # SAT proof checkers (not solvers, but SAT-domain verification tools)
+    "drat-trim", "lrat-trim",
+})
 _NUMERIC_CHECKERS= frozenset({"property_test", "interval_arithmetic", "monte_carlo",
                                "differential_test", "pytest", "hypothesis"})
 _REPRO_CHECKERS  = frozenset({"docker_repro", "nix_repro", "pytest_repro", "notebook_repro"})
