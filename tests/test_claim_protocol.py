@@ -86,8 +86,9 @@ def test_evidence_class_levels_ordered():
         EvidenceClass.E6_SYMBOLICALLY_SUPPORTED,
         EvidenceClass.E7_FORMALLY_VERIFIED,
         EvidenceClass.E8_CROSS_VERIFIED,
-        EvidenceClass.E9_ADVERSARIALLY_HARDENED,
-        EvidenceClass.E10_FIELD_VALIDATED,
+        EvidenceClass.E9_MULTI_METHOD,
+        EvidenceClass.E10_ADVERSARIALLY_HARDENED,
+        EvidenceClass.E11_FIELD_VALIDATED,
     ]
     for i, ec in enumerate(classes_in_order):
         assert ec.level == i, f"{ec.value} should have level {i}, got {ec.level}"

@@ -100,19 +100,22 @@ Key files:
 The **evidence ladder** prevents hype. Every claim gets an evidence class; no claim can skip rungs without satisfying the gate condition.
 
 ```
-E0  RAW_CLAIM          — prose, assertion, model output
-E1  SOURCED            — origin is known
-E2  PARSED             — typed, schema-valid claim object
-E3  EXECUTABLE         — at least one obligation has been run
-E4  REPRODUCED         — runpack replay passes
+E0  RAW_CLAIM             — prose, assertion, model output
+E1  SOURCED               — origin is known
+E2  PARSED                — typed, schema-valid claim object
+E3  EXECUTABLE            — at least one obligation has been run
+E4  REPRODUCED            — runpack replay passes
 E5  NUMERICALLY_SUPPORTED — property/interval tests pass
 E6  SYMBOLICALLY_SUPPORTED — CAS or SMT checker passes
-E7  FORMALLY_VERIFIED  — proof kernel accepts the proof  ← GOLD STANDARD
-E8  CROSS_VERIFIED     — 2+ independent checker families
-E9  ADVERSARIALLY_HARDENED — falsifier failed to refute
-E10 FIELD_VALIDATED    — upstream accepted, peer-reviewed
-EX  REFUTED            — counterexample or failed reproduction (OVERRIDES ALL)
+E7  FORMALLY_VERIFIED     — proof kernel accepts the proof
+E8  CROSS_VERIFIED        — ≥2 independent formal kernel families
+E9  MULTI_METHOD          — ≥2 formal families AND ≥2 distinct methods
+E10 ADVERSARIALLY_HARDENED — falsifier failed to refute
+E11 FIELD_VALIDATED       — upstream accepted, peer-reviewed
+EX  REFUTED               — counterexample or failed reproduction (OVERRIDES ALL)
 ```
+
+**Critical invariant**: `E9_MULTI_METHOD` requires each `checker_result` with `formal_verified == True` to also carry a `method` tag. Two distinct method tags AND two distinct formal families → E9. If both kernels use the same method (e.g. two HasDerivAt proofs), the claim stays at E8.
 
 **Critical invariant**: `E7_FORMALLY_VERIFIED` requires `checker_result.formal_verified == True`.
 This flag may only be set by a proof-assistant kernel output — never by an LLM assertion.
@@ -226,9 +229,10 @@ to E6 but does not satisfy the E8 gate. Example paths to E8:
 - SAT lane: cake_lpr (HOL4) + Isabelle-verified gratchk both check the LRAT proof
 
 **Current status** (v0.4.0):
-- SAT lane: cake_lpr alone → **E7_FORMALLY_VERIFIED** (1 formal kernel). Adding an Isabelle-verified LRAT checker (gratchk) would lift to E8.
+- SAT lane: cake_lpr alone → **E7_FORMALLY_VERIFIED** (1 formal kernel).
 - Integration lane (single-kernel Risch claims): Lean 4 alone → **E7_FORMALLY_VERIFIED**.
-- Integration lane (cross-prover certificates): Lean 4 + Coq → **E8_CROSS_VERIFIED** for caveat-free cases (bronstein_003, bronstein_004). Two independent kernels, no shared trusted base. Emitted by `cross_prover/cross_claim.py`. Branch-cut-divergent cases (007, 009) are honestly held at E7 — the equation matches but the kernels prove it on different domains, so the cross-prover gate refuses to grade them E8.
+- Integration lane (cross-prover certificates): Lean 4 + Coq → **E8_CROSS_VERIFIED** for caveat-free cases (bronstein_003, bronstein_004). Branch-cut-divergent cases are honestly held at E7. Emitted by `cross_prover/cross_claim.py`.
+- Cross-method (E9): Lean 4 GF(2)/ring identity + cake_lpr SAT refutation → **E9_MULTI_METHOD** for the `(a∧b)∨(a∧¬b)↔a` tautology. Two independent formal families (lean4, cake_lpr) AND two distinct methods (gf2_algebraic, sat_refutation). Translation validated by exhaustive Boolean enumeration before grading. Emitted by `protocols/cross_method_claim.py`.
 
 ---
 
@@ -250,7 +254,7 @@ to E6 but does not satisfy the E8 gate. Example paths to E8:
 | Phase | Deliverable | Status |
 |---|---|---|
 | 0 | Protocol spine (claim, runpack, evidence, obligation, transmutation) | **Done** |
-| 1 | Symbolic integration wedge (FriCAS → Lean 4) | **Done** — 29 kernel-verified theorems/lemmas (0 sorry, 0 axiom; guarded by tests/test_theorem_count.py) |
+| 1 | Symbolic integration wedge (FriCAS → Lean 4) | **Done** — 31 kernel-verified theorems/lemmas (0 sorry, 0 axiom; guarded by tests/test_theorem_count.py) |
 | 2 | SymPy/Maxima adapters + cross-CAS disagreement detector | **Done** — live hunt over 191 integrands; 0 net genuine CAS errors |
 | 3 | SAT lane with HOL4-verified formal trust anchor (cake_lpr) | **Done** — three-checker pipeline, E7_FORMALLY_VERIFIED unsat_certificate |
 | 4 | Corpus-scale runner (Rubi/DLMF/Bronstein) | Planned |

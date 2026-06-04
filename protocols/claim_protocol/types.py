@@ -37,8 +37,9 @@ class EvidenceClass(str, Enum):
     E6_SYMBOLICALLY_SUPPORTED= "E6_SYMBOLICALLY_SUPPORTED"
     E7_FORMALLY_VERIFIED     = "E7_FORMALLY_VERIFIED"
     E8_CROSS_VERIFIED        = "E8_CROSS_VERIFIED"
-    E9_ADVERSARIALLY_HARDENED= "E9_ADVERSARIALLY_HARDENED"
-    E10_FIELD_VALIDATED      = "E10_FIELD_VALIDATED"
+    E9_MULTI_METHOD          = "E9_MULTI_METHOD"
+    E10_ADVERSARIALLY_HARDENED = "E10_ADVERSARIALLY_HARDENED"
+    E11_FIELD_VALIDATED      = "E11_FIELD_VALIDATED"
     EX_REFUTED               = "EX_REFUTED"
 
     @property
@@ -48,7 +49,8 @@ class EvidenceClass(str, Enum):
             "E3_EXECUTABLE": 3, "E4_REPRODUCED": 4,
             "E5_NUMERICALLY_SUPPORTED": 5, "E6_SYMBOLICALLY_SUPPORTED": 6,
             "E7_FORMALLY_VERIFIED": 7, "E8_CROSS_VERIFIED": 8,
-            "E9_ADVERSARIALLY_HARDENED": 9, "E10_FIELD_VALIDATED": 10,
+            "E9_MULTI_METHOD": 9,
+            "E10_ADVERSARIALLY_HARDENED": 10, "E11_FIELD_VALIDATED": 11,
             "EX_REFUTED": -1,
         }
         return _levels.get(self.value, -99)
@@ -135,6 +137,7 @@ class CheckerResult:
     result:          str
     checker_version: Optional[str] = None
     formal_verified: bool = False
+    method:          Optional[str] = None  # e.g. "differentiation", "sat_refutation", "gf2_algebraic"
     artifact:        Optional[str] = None
     elapsed_ms:      Optional[float] = None
     notes:           Optional[str] = None

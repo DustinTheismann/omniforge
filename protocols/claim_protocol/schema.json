@@ -81,8 +81,9 @@
         "E6_SYMBOLICALLY_SUPPORTED",
         "E7_FORMALLY_VERIFIED",
         "E8_CROSS_VERIFIED",
-        "E9_ADVERSARIALLY_HARDENED",
-        "E10_FIELD_VALIDATED",
+        "E9_MULTI_METHOD",
+        "E10_ADVERSARIALLY_HARDENED",
+        "E11_FIELD_VALIDATED",
         "EX_REFUTED"
       ],
       "default": "E0_RAW_CLAIM"
@@ -199,6 +200,7 @@
         "checker_version":  { "type": ["string", "null"] },
         "result":           { "type": "string", "enum": ["passed", "failed", "error", "timeout", "supported", "refuted", "unknown"] },
         "formal_verified":  { "type": "boolean", "default": false },
+        "method":           { "type": ["string", "null"], "description": "Verification method used, e.g. differentiation, sat_refutation, gf2_algebraic" },
         "artifact":         { "type": ["string", "null"] },
         "elapsed_ms":       { "type": ["number", "null"] },
         "notes":            { "type": ["string", "null"] }

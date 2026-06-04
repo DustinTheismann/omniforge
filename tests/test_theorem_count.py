@@ -34,8 +34,9 @@ CANONICAL: dict[str, int] = {
     "RischVerification.lean":         9,
     "RischAutoDischarge.lean":        8,
     "PartialFractionHasDerivAt.lean": 2,
+    "Gf2Identity.lean":               2,   # gf2_and_or_identity + bool_and_or_identity
 }
-CANONICAL_TOTAL = 29
+CANONICAL_TOTAL = 31
 
 # theorem/lemma at line start (optional leading whitespace), word-boundary so
 # `theorem_name` in prose/comments mid-line is never matched.

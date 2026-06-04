@@ -1,0 +1,102 @@
+{
+  "artifacts": {
+    "lean_file": "fricas_bridge/Gf2Identity.lean",
+    "runpack": "runpacks/pf.multimethod.gf2_and_or.000001/manifest.json",
+    "source_hash": "5d94d1a0f0d5749be75d48da5153141dd29ec77d421cf6676e81c1e4ec51c48a"
+  },
+  "assumptions": [],
+  "checker_results": [
+    {
+      "artifact": "fricas_bridge/Gf2Identity.lean",
+      "checker": "lean4",
+      "checker_version": "leanprover/lean4:v4.30.0 + mathlib:v4.30.0",
+      "formal_verified": true,
+      "method": "gf2_algebraic",
+      "notes": "gf2_and_or_identity: `ring` closes the ZMod 2 polynomial identity. Kernel acceptance via CI (lean.yml).",
+      "result": "passed"
+    },
+    {
+      "artifact": "gf2_tautology.cnf",
+      "checker": "cake_lpr",
+      "checker_version": "tanyongkiam/cake_lpr@a4323b2 (HOL4-verified CakeML binary)",
+      "formal_verified": true,
+      "method": "sat_refutation",
+      "notes": "cake_lpr accepts the LRAT proof for the UNSAT CNF encoding the negation of the tautology. Acceptance is a formal soundness guarantee: cake_lpr's LRAT-checking logic is proven correct in HOL4.",
+      "result": "passed"
+    }
+  ],
+  "claim_id": "pf.multimethod.gf2_and_or.000001",
+  "claim_type": "algebraic_identity",
+  "evidence_class": "E9_MULTI_METHOD",
+  "flags": [],
+  "formal_targets": [
+    {
+      "checker_version": "leanprover/lean4:v4.30.0 + mathlib:v4.30.0",
+      "statement_file": "fricas_bridge/Gf2Identity.lean",
+      "statement_text": "a * b + a * (1 - b) = a over ZMod 2",
+      "status": "proved",
+      "system": "Lean4"
+    },
+    {
+      "checker_version": "cake_lpr@a4323b2 (HOL4)",
+      "statement_file": "benches/multimethod/gf2_tautology.cnf",
+      "statement_text": "CNF encoding of ¬((a∧b)∨(a∧¬b)↔a) is UNSAT",
+      "status": "proved",
+      "system": "other"
+    }
+  ],
+  "inputs": {
+    "cnf_file": "gf2_tautology.cnf",
+    "cnf_sha256": "5d94d1a0f0d5749be75d48da5153141dd29ec77d421cf6676e81c1e4ec51c48a",
+    "formula": "(a∧b)∨(a∧¬b)↔a"
+  },
+  "metadata": {
+    "created_at": "2026-06-04T00:00:00Z",
+    "generated_by": "protocols/cross_method_claim.py",
+    "notes": "First E9_MULTI_METHOD demonstration: gf2_algebraic (Lean4/ring over ZMod 2) + sat_refutation (cake_lpr/HOL4). Lean sha256=95c4a83356d5bd15…, CNF sha256=5d94d1a0f0d5749b…. Both encodings validated against the same Boolean truth table.",
+    "proofforge_version": "0.4.0",
+    "tags": [
+      "multimethod",
+      "E9",
+      "gf2",
+      "sat_refutation",
+      "cross-method"
+    ]
+  },
+  "natural_language": "The Boolean tautology (a∧b)∨(a∧¬b)↔a is verified by two formally-anchored but methodologically independent routes: (1) GF(2) algebraic identity over ZMod 2 in Lean 4 (gf2_and_or_identity: ring closes a * b + a * (1-b) = a); (2) SAT refutation — the negation of the tautology is encoded as a Tseitin CNF, CaDiCaL produces UNSAT with an LRAT proof, and cake_lpr — a CakeML binary whose LRAT-checking logic is formally proven correct in HOL4 — accepts that proof. The cross-translation validator confirms both encodings describe the same Boolean function. Two distinct methods (gf2_algebraic, sat_refutation) in two distinct formal families (lean4, cake_lpr) → E9.",
+  "obligations": [
+    {
+      "artifact": "fricas_bridge/Gf2Identity.lean",
+      "checker": "lean4",
+      "kind": "formal_theorem",
+      "obligation_id": "pf.multimethod.gf2_and_or.000001.lean_ring",
+      "status": "passed"
+    },
+    {
+      "artifact": "benches/multimethod/gf2_tautology.cnf",
+      "checker": "cake_lpr",
+      "kind": "formal_theorem",
+      "obligation_id": "pf.multimethod.gf2_and_or.000001.sat_refutation",
+      "status": "passed"
+    },
+    {
+      "artifact": "fricas_bridge/Gf2Identity.lean",
+      "checker": "lean4",
+      "kind": "formal_equivalence",
+      "obligation_id": "pf.multimethod.gf2_and_or.000001.cross_translation",
+      "status": "passed"
+    }
+  ],
+  "outputs": {
+    "lean_proof": "gf2_and_or_identity",
+    "lrat_proof": "proofs/proof.lrat",
+    "verdict": "TAUTOLOGY"
+  },
+  "source": {
+    "kind": "benchmark",
+    "name": "multimethod",
+    "source_hash": "5d94d1a0f0d5749be75d48da5153141dd29ec77d421cf6676e81c1e4ec51c48a",
+    "version": "0.4.0"
+  },
+  "title": "Cross-method certificate — (a∧b)∨(a∧¬b)↔a"
+}

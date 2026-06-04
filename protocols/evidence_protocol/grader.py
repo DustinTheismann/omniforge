@@ -175,15 +175,31 @@ def grade(claim: dict[str, Any]) -> EvidenceClass:
     if len(formal_passing_systems) >= 2 and level >= 7:
         level = max(level, 8)
 
-    # ── E9: adversarially hardened ───────────────────────────────────────────
+    # ── E9: cross-method (≥2 formal families AND ≥2 distinct formal methods) ─
+    # Strictly stronger than E8: two formal kernel systems must each report
+    # formal_verified=True, AND they must use two distinct verification methods
+    # (e.g. differentiation ≠ sat_refutation). A systematic error in one method's
+    # encoding is caught by the orthogonal method.
+    formal_methods = {
+        r.get("method", "")
+        for r in checker_results
+        if r.get("formal_verified") is True
+        and r.get("result") == "passed"
+        and _checker_family(r.get("checker", "")) in _FORMAL_FAMILIES
+        and r.get("method")  # skip unset/empty method
+    }
+    if len(formal_passing_systems) >= 2 and len(formal_methods) >= 2 and level >= 8:
+        level = max(level, 9)
+
+    # ── E10: adversarially hardened ──────────────────────────────────────────
     falsifier_ran = any(
         o.get("kind") == "counterexample_search"
         and o.get("status") == "failed"   # falsifier FAILED to find counterexample
         for o in obligations
     )
     no_disagreement = ClaimFlag.CHECKER_DISAGREEMENT.value not in flags
-    if level >= 8 and falsifier_ran and no_disagreement:
-        level = max(level, 9)
+    if level >= 9 and falsifier_ran and no_disagreement:
+        level = max(level, 10)
 
     _MAP = [
         EvidenceClass.E0_RAW_CLAIM,
@@ -195,10 +211,11 @@ def grade(claim: dict[str, Any]) -> EvidenceClass:
         EvidenceClass.E6_SYMBOLICALLY_SUPPORTED,
         EvidenceClass.E7_FORMALLY_VERIFIED,
         EvidenceClass.E8_CROSS_VERIFIED,
-        EvidenceClass.E9_ADVERSARIALLY_HARDENED,
-        EvidenceClass.E10_FIELD_VALIDATED,
+        EvidenceClass.E9_MULTI_METHOD,
+        EvidenceClass.E10_ADVERSARIALLY_HARDENED,
+        EvidenceClass.E11_FIELD_VALIDATED,
     ]
-    return _MAP[min(level, 10)]
+    return _MAP[min(level, 11)]
 
 
 def downgrade(claim: dict[str, Any], reason: str) -> dict[str, Any]:
