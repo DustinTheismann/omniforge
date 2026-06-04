@@ -1,0 +1,8 @@
+# Runtime dependencies (also declared in pyproject.toml [project.dependencies])
+jsonschema>=4.22.0
+sympy>=1.12
+pyyaml>=6.0
+
+# Test dependencies
+pytest>=7.0
+hypothesis>=6.0

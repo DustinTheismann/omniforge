@@ -6,7 +6,7 @@ A **lane-based verifiable algorithm foundry**. Every claim that passes through P
 ## What is different
 
 - **Fail-closed**: a claim is rejected if any required gate fails; failures are first-class outputs.
-- **Evidence ladder**: claims carry an explicit evidence class (E0–E10); no rung can be skipped without satisfying the gate condition.
+- **Evidence ladder**: claims carry an explicit evidence class (E0–E11); no rung can be skipped without satisfying the gate condition.
 - **Reproducible**: every run emits a runpack — pinned tool versions, all commands, SHA-256 artifact hashes, tamper-evident manifest.
 - **Formally anchored**: the trust anchor for each lane is a proof-assistant kernel output (Lean 4, HOL4), not an LLM assertion.
 
@@ -32,6 +32,30 @@ Live two-CAS scan (SymPy + Maxima) over 191 integrands found 0 net genuine CAS e
 - 31 Lean 4 theorems/lemmas across core library files (CasAdjudication: 10, RischVerification: 9, RischAutoDischarge: 8, PartialFractionHasDerivAt: 2, Gf2Identity: 2), 0 sorry, 0 axiom. Count guarded by `tests/test_theorem_count.py`.
 - First kernel-verified FriCAS Risch certificates.
 - Cross-prover certificates: integration claims verified by **two independent formal kernels** (Lean 4 + Coq), reaching **E8_CROSS_VERIFIED** for caveat-free cases (bronstein_003, bronstein_004).
+
+---
+
+## Quick start
+
+**Python tests only** (no external tools required):
+
+```bash
+git clone https://github.com/DustinTheismann/omniforge.git
+cd omniforge
+pip install -e ".[dev]"          # installs jsonschema, sympy, pyyaml, pytest
+pytest tests/ backbone/ -v       # 970 tests, ~30s
+```
+
+**Full SAT lane demo** (requires build toolchain: `gcc`, `git`, `make`):
+
+```bash
+bash scripts/tools/install_sat_toolchain.sh   # builds cadical, drat-trim, lrat-trim, cake_lpr
+make demo                                      # runs three-checker UNSAT pipeline
+```
+
+`make demo` produces a sealed runpack under `artifacts/` with the UNSAT certificate at E7_FORMALLY_VERIFIED.
+
+**Lean 4 / Coq proofs**: see `.github/workflows/lean.yml` and `coq.yml` for exact toolchain setup; the proofs are checked by CI on every push.
 
 ---
 
@@ -76,7 +100,7 @@ make reproduce RUN_ID=<run_id>
 |---|---|---|
 | Claim | `protocols/claim_protocol/` | Universal evidence object; JSON Schema + Python types |
 | Runpack | `protocols/runpack_protocol/` | Reproducibility capsule; pinned tools + artifact hashes |
-| Evidence | `protocols/evidence_protocol/` | `grade(claim)` → E0–E10; fail-closed gates |
+| Evidence | `protocols/evidence_protocol/` | `grade(claim)` → E0–E11; fail-closed gates |
 | Obligation | `protocols/obligation_protocol/` | Decomposes claims into checkable units |
 
 ## Contracts
