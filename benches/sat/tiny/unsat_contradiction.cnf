@@ -1,0 +1,5 @@
+c Simple UNSAT benchmark: x AND NOT x is unsatisfiable.
+c Used by the three-checker UNSAT demo (drat-trim + lrat-trim + cake_lpr).
+p cnf 1 2
+1 0
+-1 0

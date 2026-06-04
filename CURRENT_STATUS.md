@@ -1,0 +1,145 @@
+# ProofForge Ω — Current Status (2026-06-04)
+
+Branch: `claude/fracas-lean-transpiler-tqPif` · Head: `423e53a` · Tests: 970 passed, 1 skipped
+
+This document is the single source of truth for what is **proven**, what is
+**candidate** (code complete but not yet independently reviewed), and what is
+**triage** (known gap, no implementation yet). Update it whenever a status
+changes; do not let README or the arch doc diverge from it.
+
+---
+
+## Evidence Ladder Status
+
+| Rung | Name | Gate condition | Status |
+|------|------|----------------|--------|
+| E0 | RAW_CLAIM | (baseline) | ✅ Graded in all examples |
+| E1 | SOURCED | source.kind + source.name populated | ✅ All examples |
+| E2 | PARSED | schema-valid JSON | ✅ All examples; `validate_claim` enforced in tests |
+| E3 | EXECUTABLE | ≥1 obligation run | ✅ Pipeline examples |
+| E4 | REPRODUCED | repro-family checker passed | ✅ Runpack protocol implemented; examples include |
+| E5 | NUMERICALLY_SUPPORTED | numeric checker passed | ✅ Property tests / differential tests |
+| E6 | SYMBOLICALLY_SUPPORTED | CAS / SAT / SMT checker passed | ✅ FriCAS + SymPy + Maxima + cadical/drat-trim/lrat-trim |
+| E7 | FORMALLY_VERIFIED | ≥1 formal kernel with formal_verified=True | ✅ **Demonstrated** — cake_lpr (HOL4) for SAT lane; Lean 4 for integration lane |
+| E8 | CROSS_VERIFIED | ≥2 independent formal kernel families, each formal_verified=True | ✅ **Demonstrated** — Lean 4 + Coq (bronstein_003, bronstein_004) |
+| E9 | MULTI_METHOD | ≥2 formal families AND ≥2 distinct formal methods | ✅ **Demonstrated** — gf2_algebraic (Lean 4) + sat_refutation (cake_lpr) |
+| E10 | ADVERSARIALLY_HARDENED | falsifier ran and found no counterexample; no CHECKER_DISAGREEMENT flag | ⬜ **Not implemented** — falsifier obligation kind exists but no falsifier tool wired |
+| E11 | FIELD_VALIDATED | reserved for external reproduction/publication | ⬜ **Not implemented** |
+| EX | REFUTED | formal refutation or counterexample found | ✅ Gate coded; EX_REFUTED overrides all other levels |
+
+---
+
+## Lane Status
+
+### SAT Lane
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Solver | ✅ cadical (untrusted producer) | Produces DRAT proof; not a verifier |
+| Checker 1 | ✅ drat-trim | DRAT correctness check; corroboration |
+| Checker 2 | ✅ lrat-trim | DRAT→LRAT conversion + check; corroboration |
+| Checker 3 (trust anchor) | ✅ cake_lpr | HOL4-proven LRAT checker; sole formal kernel |
+| Evidence class | **E7_FORMALLY_VERIFIED** | One formal kernel (cake_lpr/HOL4) |
+| Path to E8 | Candidate — requires a second independent formal LRAT checker | Not yet wired; `test_two_formal_sat_checkers_grade_e8` documents the pattern |
+| Runpack | ✅ sealed | SHA-256 hashes, pinned tool versions |
+| Canonical example | `protocols/claim_protocol/examples/unsat_000001.json` | |
+
+cake_lpr SHA pin: `a4323b203cc9ecd584ba7da9e3fff08135a09d5f` (verified via
+`git ls-remote` against `github.com/tanyongkiam/cake_lpr`).
+
+### Integration Lane (FriCAS Risch)
+
+| Item | Status | Notes |
+|------|--------|-------|
+| CAS producer | ✅ FriCAS (Risch algorithm) | Untrusted producer; residual derivative check follows |
+| Residual check | ✅ SymPy + Maxima (two-CAS scan, 191 integrands) | 0 net genuine CAS errors after review |
+| Lean 4 proofs | ✅ 31 theorem/lemma decls, 0 sorry, 0 axiom | Guarded by `tests/test_theorem_count.py` |
+| Coq proofs | ✅ RischCoqDischarge.v (cross-prover) | bronstein_003, bronstein_004 |
+| Evidence class (standard) | **E7_FORMALLY_VERIFIED** | Lean 4 kernel alone |
+| Evidence class (cross-prover) | **E8_CROSS_VERIFIED** | Lean 4 + Coq for bronstein_003, bronstein_004 |
+| Branch-cut divergent cases | ⚠️ Held at E7 | Lean uses `x≠0`, Coq uses `0<x`; cross_claim.py refuses E8 for these |
+| Canonical E8 example | `protocols/claim_protocol/examples/cross_bronstein_003.json` | |
+
+### Cross-Method Lane (E9 demonstration)
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Formula | `(a∧b)∨(a∧¬b)↔a` | Boolean tautology |
+| Lean 4 proof | ✅ `fricas_bridge/Gf2Identity.lean` | `gf2_and_or_identity` via `ring` over `ZMod 2` |
+| SAT refutation | ✅ `benches/multimethod/gf2_tautology.cnf` | 5 variables, 11 clauses, UNSAT |
+| Cross-translation validator | ✅ `protocols/cross_method_claim.py` | Exhaustive 2^n check confirms CNF encodes same formula as GF(2) identity fn |
+| Formal methods | `gf2_algebraic` (lean4) + `sat_refutation` (cake_lpr) | 2 distinct methods |
+| Evidence class | **E9_MULTI_METHOD** | |
+| Canonical example | `protocols/claim_protocol/examples/multimethod_000001.json` | |
+
+---
+
+## Formal Kernel Assets
+
+| System | Family tag | Proven correct by | Current use |
+|--------|-----------|-------------------|-------------|
+| cake_lpr | `cake_lpr` | HOL4 (machine-checked) | SAT lane trust anchor; E9 cross-method anchor |
+| Lean 4 | `lean4` | Lean 4 kernel (de Bruijn, no sorry) | Integration lane; GF(2) identity |
+| Coq | `coq` | Coq kernel | Cross-prover E8 for bronstein_003, bronstein_004 |
+
+CAS systems (FriCAS, SymPy, Maxima) contribute to **E6** only. They are not
+proof kernels and do not satisfy the E7 gate.
+
+---
+
+## Theorem Count Guard
+
+Canonical per-file counts (enforced by `tests/test_theorem_count.py`):
+
+| File | Theorems + Lemmas |
+|------|-------------------|
+| `CasAdjudication.lean` | 10 |
+| `RischVerification.lean` | 9 |
+| `RischAutoDischarge.lean` | 8 |
+| `PartialFractionHasDerivAt.lean` | 2 |
+| `Gf2Identity.lean` | 2 |
+| **Total** | **31** |
+
+If this number changes, `tests/test_theorem_count.py`, `README.md`, and
+`docs/PROOFFORGE_OMEGA_ARCHITECTURE.md` must all be updated together. The test
+breaks CI if only some are updated.
+
+---
+
+## PR Status
+
+| PR | Branch | Status | Scope |
+|----|--------|--------|-------|
+| PR #1 | `score-20` | Open, blocked | Two-checker UNSAT (DRAT+LRAT only); no cake_lpr |
+| PR #2 | `claude/fracas-lean-transpiler-tqPif` | Open, CI green (35/35) | Full ProofForge Ω protocol spine; three-checker SAT; integration lane; E7/E8/E9 demonstrated |
+
+**SAT overlap decision**: PR #2 supersedes PR #1. PR #2's SAT lane adds cake_lpr
+(HOL4-verified formal gate) on top of DRAT+LRAT and is strictly richer than
+PR #1's two-checker version. PR #1 should be **closed as superseded** once PR #2
+merges, or closed proactively now to avoid confusion.
+
+---
+
+## Known Gaps (Triage)
+
+| Gap | Impact | Priority |
+|-----|--------|----------|
+| E10 falsifier not wired | No adversarial hardening demonstration | Low — requires SMT counterexample tool integration |
+| SAT lane E8 | cake_lpr alone = E7; second formal LRAT checker not wired | Medium — `test_two_formal_sat_checkers_grade_e8` documents the target pattern |
+| Branch-cut divergent cases held at E7 | bronstein_001/002 can't reach E8 cross-prover | Medium — requires Lean/Coq to agree on domain condition |
+| 189 of 191 integrands at E7, not E8 | Only 2 cross-prover-verified integrands | Low — systematic but labor-intensive |
+| MILP / SMT lane | No formal MILP solver trust anchor exists | Low — no known HOL4/Lean4-verified MILP kernel |
+| Isabelle emitter | `cross_prover/isabelle_emitter.py` exists but not wired to E8 gate | Low |
+
+---
+
+## What Is Frozen (Feature Freeze)
+
+PR #2 is in feature freeze. No new capability additions until it merges.
+
+Future lanes and extensions belong in separate follow-up PRs:
+- **PR #3**: SAT lane E8 (second formal LRAT checker)
+- **PR #4**: MILP lane (if a suitable verified MILP kernel is identified)
+- **PR #5**: Adversarial hardening (E10 gate)
+- **PR #6**: Isabelle integration
+- **PR #7**: Branch-cut domain condition alignment (Lean+Coq agreement on `x≠0` vs `0<x`)

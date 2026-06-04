@@ -12,3 +12,14 @@ reproduce:
 .PHONY: validate-contracts
 validate-contracts:
 	$(PY) -m omniforge.cli validate-contracts
+
+.PHONY: validate-protocols
+validate-protocols:
+	$(PY) -m pytest tests/test_claim_protocol.py tests/test_runpack_protocol.py tests/test_evidence_grader.py -v --tb=short
+
+.PHONY: validate-backbone
+validate-backbone:
+	$(PY) -m pytest backbone/tests/ -v --tb=short
+
+.PHONY: test-all
+test-all: validate-backbone validate-protocols

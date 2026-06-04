@@ -1,0 +1,139 @@
+name: CAS disagreement hunt
+
+# Exercises the LIVE disagreement-adjudication path: SymPy and Maxima are both
+# actually installed and run, not read from a committed table.  This is what
+# turns the apparatus from "demonstrated on safe cases" into "pointed at the
+# corpus and hunting".  Three gates:
+#   1. live two-CAS hunt over cross_prover/cas_hunt.py corpus
+#   2. corpus-expectation consistency (offline detector vs CorpusEntry.expected)
+#   3. kernel-adjudication lemma validation (every cert points at a real theorem)
+
+on:
+  push:
+    paths:
+      - 'fricas_bridge/**.py'
+      - 'cross_prover/**.py'
+      - 'fricas_bridge/data/fricas_offline_cache.json'
+      - '.github/workflows/cas-hunt.yml'
+  pull_request:
+    paths:
+      - 'fricas_bridge/**.py'
+      - 'cross_prover/**.py'
+      - '.github/workflows/cas-hunt.yml'
+
+jobs:
+  live-hunt:
+    name: Live two-CAS hunt (SymPy + Maxima)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install SymPy (live CAS #1)
+        run: |
+          pip install --upgrade pip
+          pip install -e . || true
+          pip install sympy pytest
+          python -c "import sympy; print('sympy', sympy.__version__)"
+
+      - name: Install Maxima (live CAS #2)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y maxima
+          maxima --version
+
+      - name: Run the live hunt
+        run: |
+          # Full corpus, both CAS live.  Writes hunt_report.json and prints a
+          # verdict summary.  Exit code is 0 regardless of findings — a
+          # GENUINE_DISAGREE is a *candidate* that needs a kernel proof, not a
+          # CI failure.  The artifact is the record.
+          python -m cross_prover.cas_hunt --run --out hunt_report.json
+
+      - name: Surface any GENUINE_DISAGREE for review
+        run: |
+          python - <<'PY'
+          import json, sys
+          d = json.load(open("hunt_report.json"))
+          s = d["summary"]
+          print("Verdict counts:", s["counts"])
+          gd = s["genuine_disagree"]
+          bw = s["both_wrong"]
+          if gd or bw:
+              print(f"\n::warning::Hunt flagged {len(gd)} GENUINE_DISAGREE and "
+                    f"{len(bw)} BOTH_WRONG candidate(s).")
+              print("These are TRIAGE candidates (SymPy derivative check), not")
+              print("proven CAS bugs.  Each needs a Lean/Coq kernel rejection")
+              print("proof before any claim.  Details:")
+              for r in gd + bw:
+                  print(f"  - {r['integrand']}: SymPy={r['sympy_result']!r} "
+                        f"Maxima={r['maxima_result']!r}")
+          else:
+              print("\nNo GENUINE_DISAGREE/BOTH_WRONG candidates this run.")
+          PY
+
+      - name: Upload hunt report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cas-hunt-report
+          path: hunt_report.json
+
+  consistency:
+    name: Corpus & certificate consistency
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: |
+          pip install --upgrade pip
+          pip install -e . || true
+          pip install sympy pytest
+
+      - name: Corpus expectations match the offline detector
+        run: |
+          python - <<'PY'
+          import sys
+          from fricas_bridge.cas_corpus import load_corpus
+          from fricas_bridge.disagree_detector import compare_triple
+          bad = []
+          for e in load_corpus():
+              r = compare_triple(e.integrand, e.var)
+              if e.expected != "unknown" and r.disagreement != e.expected:
+                  bad.append(f"{e.integrand!r}: expected={e.expected} got={r.disagreement}")
+              if e.expected_subclass and r.domain_subclass != e.expected_subclass:
+                  bad.append(f"{e.integrand!r}: subclass expected={e.expected_subclass} got={r.domain_subclass}")
+          if bad:
+              print("::error::Corpus expectations drifted from detector output:")
+              for b in bad:
+                  print("  -", b)
+              sys.exit(1)
+          print("OK: every CorpusEntry.expected matches the detector.")
+          PY
+
+      - name: Kernel-adjudication lemmas reference real theorems
+        run: |
+          # Every is_kernel_adjudicated=True certificate must point at a theorem
+          # that actually exists in CasAdjudication.lean.
+          python -m cross_prover.adjudication_certificate
+
+      - name: Adjudication + corpus + detector tests
+        run: |
+          python -m pytest \
+            tests/test_adjudication_certificate.py \
+            tests/test_cas_corpus.py \
+            tests/test_disagree_detector.py \
+            tests/test_maxima_resolver.py \
+            -v --tb=short

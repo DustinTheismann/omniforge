@@ -1,0 +1,452 @@
+)abbrev category AGG Aggregate
+++ Description:
+++ An Aggregate is any structure whose main purpose is to hold a collection
+++ of objects, with operations to access and modify those objects.
+++
+++ Axioms:
+++   \spad{copy(a) = a}
+Aggregate() : Category == Type with
+    empty     : constant -> %
+      ++ empty() creates an empty aggregate.
+    empty?    : % -> Boolean
+      ++ empty?(a) tests if the aggregate a is empty.
+    size?     : (%, NonNegativeInteger) -> Boolean
+      ++ size?(a,n) tests if the aggregate has exactly n elements.
+    more?     : (%, NonNegativeInteger) -> Boolean
+      ++ more?(a,n) tests if the aggregate has more than n elements.
+    less?     : (%, NonNegativeInteger) -> Boolean
+      ++ less?(a,n) tests if the aggregate has fewer than n elements.
+    "#"       : % -> NonNegativeInteger
+      ++ #a returns the number of elements in a.
+    copy      : % -> %
+      ++ copy(a) creates a fresh copy of aggregate a.
+    eq?       : (%, %) -> Boolean
+      ++ eq?(a,b) tests if a and b are the same object.
+
+)abbrev category HOAGG HomogeneousAggregate
+++ Description:
+++ A HomogeneousAggregate is an Aggregate whose members all have the
+++ same type S.
+HomogeneousAggregate(S : Type) : Category == Aggregate with
+    member?   : (S, %) -> Boolean
+      ++ member?(x,a) tests if x is a member of a.
+    members   : % -> List S
+      ++ members(a) returns a list of members.
+    count     : (S -> Boolean, %) -> NonNegativeInteger
+      ++ count(p,a) counts elements satisfying predicate p.
+    any?      : (S -> Boolean, %) -> Boolean
+      ++ any?(p,a) tests if some element satisfies p.
+    every?    : (S -> Boolean, %) -> Boolean
+      ++ every?(p,a) tests if all elements satisfy p.
+
+)abbrev category CLAGG Collection
+++ Description:
+++ A Collection is a HomogeneousAggregate with iteration and
+++ insertion/deletion operations.
+Collection(S : Type) : Category == HomogeneousAggregate(S) with
+    construct  : List S -> %
+      ++ construct(ls) builds an aggregate from a list.
+    find       : (S -> Boolean, %) -> Union(S, "failed")
+      ++ find(p,a) returns the first element satisfying p, if any.
+    select     : (S -> Boolean, %) -> %
+      ++ select(p,a) returns elements satisfying p.
+    remove     : (S -> Boolean, %) -> %
+      ++ remove(p,a) removes elements satisfying p.
+    reduce     : ((S, S) -> S, %, S) -> S
+      ++ reduce(f,a,z) folds f over a with initial value z.
+    insert!    : (S, %) -> %
+      ++ insert!(x,a) inserts x into a destructively.
+
+)abbrev category BGAGG BagAggregate
+++ Description:
+++ A BagAggregate is a Collection allowing insertion and extraction.
+BagAggregate(S : Type) : Category == Collection(S) with
+    bag      : List S -> %
+      ++ bag(ls) creates a bag from a list.
+    insert!  : (S, %) -> %
+      ++ insert!(x,b) inserts x into the bag b.
+    extract! : % -> S
+      ++ extract!(b) removes and returns an element from b.
+    inspect  : % -> S
+      ++ inspect(b) returns the next element to be extracted without removing.
+
+)abbrev category SKAGG StackAggregate
+++ Description:
+++ A StackAggregate is a last-in first-out (LIFO) BagAggregate.
+StackAggregate(S : Type) : Category == BagAggregate(S) with
+    push!    : (S, %) -> %
+      ++ push!(x,s) adds x to the top of stack s.
+    pop!     : % -> S
+      ++ pop!(s) removes and returns the top element of s.
+    top      : % -> S
+      ++ top(s) returns the top element without removing.
+    depth    : % -> NonNegativeInteger
+      ++ depth(s) returns the number of elements in s.
+
+)abbrev category QUAGG QueueAggregate
+++ Description:
+++ A QueueAggregate is a first-in first-out (FIFO) BagAggregate.
+QueueAggregate(S : Type) : Category == BagAggregate(S) with
+    enqueue! : (S, %) -> %
+      ++ enqueue!(x,q) adds x to the back of q.
+    dequeue! : % -> S
+      ++ dequeue!(q) removes and returns the front element.
+    front    : % -> S
+      ++ front(q) returns the front element without removing.
+    back     : % -> S
+      ++ back(q) returns the back element without removing.
+    length   : % -> NonNegativeInteger
+      ++ length(q) returns the number of elements in q.
+
+)abbrev category DQAGG DequeueAggregate
+++ Description:
+++ A DequeueAggregate is a double-ended queue: insertion and
+++ deletion are allowed at both ends.
+DequeueAggregate(S : Type) : Category == Join(QueueAggregate(S), StackAggregate(S)) with
+    pushFront! : (S, %) -> %
+      ++ pushFront!(x,d) inserts x at the front of d.
+    pushBack!  : (S, %) -> %
+      ++ pushBack!(x,d) inserts x at the back of d.
+    popFront!  : % -> S
+      ++ popFront!(d) removes and returns the front element.
+    popBack!   : % -> S
+      ++ popBack!(d) removes and returns the back element.
+
+)abbrev category PRQAGG PriorityQueueAggregate
+++ Description:
+++ A PriorityQueueAggregate is a BagAggregate where extraction
+++ always returns the largest element.
+PriorityQueueAggregate(S : OrderedSet) : Category == BagAggregate(S) with
+    max      : % -> S
+      ++ max(q) returns the largest element without removing it.
+
+)abbrev category DIAGG DictionaryOperations
+++ Description:
+++ DictionaryOperations provides insertion and deletion by value
+++ for a homogeneous aggregate.
+DictionaryOperations(S : SetCategory) : Category == HomogeneousAggregate(S) with
+    insert!  : (S, %) -> %
+      ++ insert!(x,d) inserts x into d.
+    remove!  : (S, %) -> %
+      ++ remove!(x,d) removes all copies of x from d.
+    select!  : (S -> Boolean, %) -> %
+      ++ select!(p,d) keeps only elements satisfying p.
+    remove!  : (S -> Boolean, %) -> %
+      ++ remove!(p,d) removes all elements satisfying p.
+
+)abbrev category DIOPS Dictionary
+++ Description:
+++ A Dictionary is a DictionaryOperations supporting set-like operations.
+Dictionary(S : SetCategory) : Category == DictionaryOperations(S) with
+    dictionary : List S -> %
+      ++ dictionary(ls) builds a dictionary from a list.
+
+)abbrev category MDAGG MultiDictionary
+++ Description:
+++ A MultiDictionary allows multiple copies of the same element.
+MultiDictionary(S : SetCategory) : Category == Dictionary(S) with
+    duplicates? : % -> Boolean
+      ++ duplicates?(d) tests if any element appears more than once.
+    multiset    : % -> %
+      ++ multiset(d) converts d to a multiset representation.
+
+)abbrev category SETAGG SetAggregate
+++ Description:
+++ A SetAggregate is a Dictionary with classical set operations.
+++
+++ Axioms:
+++   \spad{intersect(a,union(b,c)) = union(intersect(a,b),intersect(a,c))}
+SetAggregate(S : SetCategory) : Category == Dictionary(S) with
+    set        : List S -> %
+      ++ set(ls) builds a set from a list, removing duplicates.
+    union      : (%, %) -> %
+      ++ union(a,b) returns the set-theoretic union.
+    intersect  : (%, %) -> %
+      ++ intersect(a,b) returns the set-theoretic intersection.
+    difference : (%, %) -> %
+      ++ difference(a,b) returns elements in a but not b.
+    subset?    : (%, %) -> Boolean
+      ++ subset?(a,b) tests if a is a subset of b.
+    symmetricDifference : (%, %) -> %
+      ++ symmetricDifference(a,b) returns elements in exactly one of a,b.
+
+)abbrev category FSAGG FiniteSetAggregate
+++ Description:
+++ A FiniteSetAggregate is a finite SetAggregate.
+FiniteSetAggregate(S : SetCategory) : Category == SetAggregate(S) with
+    parts   : % -> List S
+      ++ parts(s) returns a list of all elements.
+    cardinality : % -> NonNegativeInteger
+      ++ cardinality(s) returns the number of distinct elements.
+
+)abbrev category MSAGG MultisetAggregate
+++ Description:
+++ A MultisetAggregate is a SetAggregate allowing duplicate elements,
+++ with multiplicity tracking.
+MultisetAggregate(S : SetCategory) : Category == SetAggregate(S) with
+    multiplicity : (S, %) -> NonNegativeInteger
+      ++ multiplicity(x,m) returns the number of times x appears in m.
+
+)abbrev category OMSAGG OrderedMultisetAggregate
+++ Description:
+++ An OrderedMultisetAggregate is a MultisetAggregate whose element
+++ type is ordered.
+OrderedMultisetAggregate(S : OrderedSet) : Category == MultisetAggregate(S)
+
+)abbrev category KDAGG KeyedDictionary
+++ Description:
+++ A KeyedDictionary is a dictionary indexed by keys of type Key,
+++ mapping keys to values of type Entry.
+KeyedDictionary(Key : SetCategory, Entry : Type) : Category == DictionaryOperations(Record(key : Key, entry : Entry)) with
+    search     : (Key, %) -> Union(Entry, "failed")
+      ++ search(k,d) looks up the value for key k.
+    remove!    : (Key, %) -> Union(Entry, "failed")
+      ++ remove!(k,d) removes key k and returns its value.
+    keys       : % -> List Key
+      ++ keys(d) returns the list of all keys.
+    entries    : % -> List Entry
+      ++ entries(d) returns the list of all entries.
+    key?       : (Key, %) -> Boolean
+      ++ key?(k,d) tests if k is a key in d.
+
+)abbrev category ELTAB Eltable
+++ Description:
+++ Eltable is the category of objects with indexed element access.
+Eltable(S : Type, E : Type) : Category == Type with
+    elt : (%, S) -> E
+      ++ elt(a,s) returns the element at index s of a.
+
+)abbrev category ELTAGG EltableAggregate
+++ Description:
+++ An EltableAggregate is an Aggregate that is also Eltable.
+EltableAggregate(Index : Type, Entry : Type) : Category == Join(Aggregate, Eltable(Index, Entry)) with
+    qelt  : (%, Index) -> Entry
+      ++ qelt(a,i) returns the element at i without bounds checking.
+
+)abbrev category IXAGG IndexedAggregate
+++ Description:
+++ An IndexedAggregate is an EltableAggregate with integer-like indices.
+IndexedAggregate(Index : OrderedSet, Entry : Type) : Category == EltableAggregate(Index, Entry) with
+    minIndex : % -> Index
+      ++ minIndex(a) returns the smallest valid index.
+    maxIndex : % -> Index
+      ++ maxIndex(a) returns the largest valid index.
+    first    : % -> Entry
+      ++ first(a) returns the first element.
+    last     : % -> Entry
+      ++ last(a) returns the last element.
+    entry?   : (Entry, %) -> Boolean
+      ++ entry?(x,a) tests if x is an entry of a.
+
+)abbrev category TBAGG TableAggregate
+++ Description:
+++ A TableAggregate is an IndexedAggregate and KeyedDictionary.
+TableAggregate(Key : SetCategory, Entry : Type) : Category ==
+  Join(IndexedAggregate(Key, Entry), KeyedDictionary(Key, Entry)) with
+    table    : List Record(key : Key, entry : Entry) -> %
+      ++ table(ls) builds a table from a list of key-entry pairs.
+    setelt!  : (%, Key, Entry) -> Entry
+      ++ setelt!(t,k,e) sets the entry for key k to e.
+
+)abbrev category RCAGG RecursiveAggregate
+++ Description:
+++ A RecursiveAggregate is an Aggregate whose nodes may point to
+++ sub-aggregates of the same type.
+RecursiveAggregate(S : Type) : Category == HomogeneousAggregate(S) with
+    value    : % -> S
+      ++ value(a) returns the value stored at the root node.
+    children : % -> List %
+      ++ children(a) returns the list of child aggregates.
+    child?   : (%, %) -> Boolean
+      ++ child?(a,b) tests if a is a direct child of b.
+    node?    : % -> Boolean
+      ++ node?(a) tests if a is a non-leaf node.
+    leaf?    : % -> Boolean
+      ++ leaf?(a) tests if a is a leaf node (no children).
+    nodes    : % -> List %
+      ++ nodes(a) returns the list of all nodes.
+    cyclic?  : % -> Boolean
+      ++ cyclic?(a) tests if a has a cycle.
+
+)abbrev category BRAGG BinaryRecursiveAggregate
+++ Description:
+++ A BinaryRecursiveAggregate is a RecursiveAggregate where each
+++ non-leaf node has exactly two children: left and right.
+BinaryRecursiveAggregate(S : Type) : Category == RecursiveAggregate(S) with
+    left     : % -> %
+      ++ left(a) returns the left subtree.
+    right    : % -> %
+      ++ right(a) returns the right subtree.
+    node     : (%, S, %) -> %
+      ++ node(l,v,r) constructs a node with left l, value v, right r.
+
+)abbrev category DLAGG DoublyLinkedAggregate
+++ Description:
+++ A DoublyLinkedAggregate is a RecursiveAggregate whose nodes
+++ have references to both next and previous nodes.
+DoublyLinkedAggregate(S : Type) : Category == RecursiveAggregate(S) with
+    next     : % -> %
+      ++ next(a) returns the next node.
+    prev     : % -> %
+      ++ prev(a) returns the previous node.
+
+)abbrev category URAGG UnaryRecursiveAggregate
+++ Description:
+++ A UnaryRecursiveAggregate is a RecursiveAggregate where each
+++ non-leaf node has exactly one child, forming a linked list structure.
+UnaryRecursiveAggregate(S : Type) : Category == RecursiveAggregate(S) with
+    first    : % -> S
+      ++ first(a) returns the first element.
+    rest     : % -> %
+      ++ rest(a) returns the aggregate without the first element.
+    setfirst! : (%, S) -> S
+      ++ setfirst!(a,x) sets the first element to x.
+    setrest!  : (%, %) -> %
+      ++ setrest!(a,r) sets the rest of a to r.
+    concat    : (%, %) -> %
+      ++ concat(a,b) appends b to a.
+    concat!   : (%, %) -> %
+      ++ concat!(a,b) destructively appends b to a.
+    second    : % -> S
+      ++ second(a) returns the second element.
+    third     : % -> S
+      ++ third(a) returns the third element.
+    last      : % -> S
+      ++ last(a) returns the last element.
+    last      : (%, NonNegativeInteger) -> %
+      ++ last(a,n) returns the last n elements.
+
+)abbrev category LNAGG LinearAggregate
+++ Description:
+++ A LinearAggregate is an IndexedAggregate and Collection where
+++ the indices are consecutive non-negative integers.
+LinearAggregate(S : Type) : Category == Join(IndexedAggregate(NonNegativeInteger, S), Collection(S)) with
+    new      : (NonNegativeInteger, S) -> %
+      ++ new(n,x) creates an aggregate of n copies of x.
+    concat   : (%, %) -> %
+      ++ concat(a,b) returns the concatenation of a and b.
+    concat   : List % -> %
+      ++ concat(ls) concatenates a list of aggregates.
+    reverse  : % -> %
+      ++ reverse(a) returns the elements in reverse order.
+    reverse! : % -> %
+      ++ reverse!(a) reverses a destructively.
+    sorted?  : (%, (S, S) -> Boolean) -> Boolean
+      ++ sorted?(a,f) tests if a is sorted under comparison f.
+    sort     : (%, (S, S) -> Boolean) -> %
+      ++ sort(a,f) returns a sorted copy of a.
+    sort!    : (%, (S, S) -> Boolean) -> %
+      ++ sort!(a,f) sorts a destructively.
+
+)abbrev category FLINEAR FiniteLinearAggregate
+++ Description:
+++ A FiniteLinearAggregate is a LinearAggregate of finite length.
+FiniteLinearAggregate(S : Type) : Category == LinearAggregate(S) with
+    copyInto! : (%, %, Integer) -> %
+      ++ copyInto!(y,x,i) copies x into y starting at position i.
+    position  : (S, %) -> Integer
+      ++ position(x,a) returns the first index where x appears, or -1.
+    position  : (S, %, Integer) -> Integer
+      ++ position(x,a,n) searches for x starting at index n.
+
+)abbrev category ODARR OneDimensionalArrayAggregate
+++ Description:
+++ OneDimensionalArrayAggregate is a FiniteLinearAggregate with
+++ constant-time random access indexed from 1.
+OneDimensionalArrayAggregate(S : Type) : Category == FiniteLinearAggregate(S) with
+    vector   : List S -> %
+      ++ vector(ls) builds a one-dimensional array from a list.
+
+)abbrev category ELAGG ExtensibleLinearAggregate
+++ Description:
+++ An ExtensibleLinearAggregate is a LinearAggregate that supports
+++ efficient insertion and deletion at both ends.
+ExtensibleLinearAggregate(S : Type) : Category == LinearAggregate(S) with
+    insert!  : (S, %, Integer) -> %
+      ++ insert!(x,a,i) inserts x at position i in a.
+    delete!  : (%, Integer) -> %
+      ++ delete!(a,i) removes the element at position i from a.
+    remove!  : (S, %) -> %
+      ++ remove!(x,a) removes all occurrences of x from a.
+
+)abbrev category STAGG StreamAggregate
+++ Description:
+++ A StreamAggregate is a LinearAggregate whose elements are generated
+++ lazily; it may be infinite.
+StreamAggregate(S : Type) : Category == LinearAggregate(S) with
+    explicitlyEmpty? : % -> Boolean
+      ++ explicitlyEmpty?(s) tests if s is definitely empty.
+    lazy?            : % -> Boolean
+      ++ lazy?(s) tests if s has an unevaluated tail.
+    numberOfComputedEntries : % -> NonNegativeInteger
+      ++ numberOfComputedEntries(s) returns computed prefix length.
+    filterUntil     : (S -> Boolean, %) -> %
+      ++ filterUntil(p,s) returns the prefix of s up to first element satisfying p.
+    select          : (S -> Boolean, %) -> %
+      ++ select(p,s) returns the (lazy) stream of elements satisfying p.
+
+)abbrev category LSAGG ListAggregate
+++ Description:
+++ A ListAggregate is an ExtensibleLinearAggregate and UnaryRecursiveAggregate,
+++ combining linked-list structure with extensibility.
+ListAggregate(S : Type) : Category == Join(ExtensibleLinearAggregate(S), UnaryRecursiveAggregate(S)) with
+    list     : S -> %
+      ++ list(x) creates a one-element list.
+
+)abbrev category ALAGG AssociationListAggregate
+++ Description:
+++ An AssociationListAggregate is a ListAggregate and KeyedDictionary
+++ representing a list of key-value pairs.
+AssociationListAggregate(Key : SetCategory, Entry : Type) : Category ==
+  Join(ListAggregate(Record(key : Key, entry : Entry)), KeyedDictionary(Key, Entry)) with
+    assoc    : (Key, %) -> Union(Record(key : Key, entry : Entry), "failed")
+      ++ assoc(k,al) returns the pair with key k, if present.
+
+)abbrev category SRAGG StringAggregate
+++ Description:
+++ A StringAggregate is a OneDimensionalArrayAggregate of characters
+++ with string-specific operations.
+StringAggregate() : Category == OneDimensionalArrayAggregate(Character) with
+    upperCase  : % -> %
+      ++ upperCase(s) converts s to upper case.
+    lowerCase  : % -> %
+      ++ lowerCase(s) converts s to lower case.
+    capitalize : % -> %
+      ++ capitalize(s) capitalizes s.
+    trim       : (%, Character) -> %
+      ++ trim(s,c) removes leading and trailing occurrences of c.
+    split      : (%, Character) -> List %
+      ++ split(s,c) splits s at character c.
+    coerce     : % -> String
+      ++ coerce(s) converts to a Lean String.
+    coerce     : String -> %
+      ++ coerce(s) converts from a Lean String.
+    match?     : (%, %, Character) -> Boolean
+      ++ match?(s,p,w) tests if s matches pattern p with wildcard w.
+    substring? : (%, %, NonNegativeInteger) -> Boolean
+      ++ substring?(s,t,n) tests if s appears in t starting at n.
+    prefix?    : (%, %) -> Boolean
+      ++ prefix?(s,t) tests if s is a prefix of t.
+    suffix?    : (%, %) -> Boolean
+      ++ suffix?(s,t) tests if s is a suffix of t.
+
+)abbrev category BTAGG BitAggregate
+++ Description:
+++ A BitAggregate is a OneDimensionalArrayAggregate of bits (0 or 1)
+++ with bitwise logical operations.
+++
+++ Axioms:
+++   \spad{xor(and(a,b),or(a,b)) = or(a,b)}
+BitAggregate() : Category == OneDimensionalArrayAggregate(Bit) with
+    and   : (%, %) -> %
+      ++ and(a,b) returns the bitwise AND.
+    or    : (%, %) -> %
+      ++ or(a,b) returns the bitwise OR.
+    xor   : (%, %) -> %
+      ++ xor(a,b) returns the bitwise XOR.
+    not   : % -> %
+      ++ not(a) returns the bitwise complement.
+    nand  : (%, %) -> %
+      ++ nand(a,b) returns the bitwise NAND.
+    nor   : (%, %) -> %
+      ++ nor(a,b) returns the bitwise NOR.

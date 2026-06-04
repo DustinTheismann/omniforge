@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "backbone/corpus/schema.json",
+  "title": "Bronstein Corpus Entry",
+  "description": "Schema for entries in bronstein.jsonl — extends the CAS corpus entry schema.",
+  "$ref": "../cas_protocol/schema.json",
+  "required": ["id", "source", "integrand", "antiderivative", "variable", "discrepancy_class"]
+}

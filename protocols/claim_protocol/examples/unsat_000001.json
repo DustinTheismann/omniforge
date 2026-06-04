@@ -1,0 +1,95 @@
+{
+  "claim_id": "pf.unsat.000001",
+  "claim_type": "unsat_certificate",
+  "title": "Three-checker UNSAT certificate — unsat_contradiction.cnf",
+  "natural_language": "The CNF formula {x, ¬x} (1 variable, 2 unit clauses) is unsatisfiable. Evidence: (1) CaDiCaL reports UNSAT with a DRAT proof; (2) drat-trim verifies the DRAT proof; (3) lrat-trim verifies an LRAT proof; (4) cake_lpr — a CakeML binary whose LRAT-checking logic is formally proven correct in HOL4 — accepts the LRAT proof, outputting 's VERIFIED UNSAT'. All three gates are fail-closed. cake_lpr's acceptance is the trust anchor; drat-trim and lrat-trim are corroboration.",
+  "source": {
+    "kind": "benchmark",
+    "name": "cadical",
+    "version": "rel-3.0.0",
+    "source_hash": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
+  },
+  "inputs": {
+    "cnf_file": "unsat_contradiction.cnf",
+    "cnf_sha256": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+    "solver_seed": 0,
+    "solver": "cadical rel-3.0.0"
+  },
+  "outputs": {
+    "verdict": "UNSAT",
+    "drat_proof": "proofs/proof.drat",
+    "lrat_proof": "proofs/proof.lrat"
+  },
+  "formal_targets": [
+    {
+      "system": "other",
+      "status": "proved",
+      "checker_version": "cake_lpr/a4323b2 — compiled from CakeML assembly; checker proven correct in HOL4",
+      "statement_text": "The LRAT proof for CNF (sha256=a1b2c3d4e5f6a1b2…) is a valid unsatisfiability certificate, verified by the HOL4-certified LPR checker cake_lpr."
+    }
+  ],
+  "assumptions": [],
+  "obligations": [
+    {
+      "obligation_id": "pf.unsat.000001.drat_check",
+      "kind": "benchmark_correctness",
+      "checker": "drat-trim",
+      "status": "passed",
+      "artifact": "proofs/proof.drat"
+    },
+    {
+      "obligation_id": "pf.unsat.000001.lrat_check",
+      "kind": "benchmark_correctness",
+      "checker": "lrat-trim",
+      "status": "passed",
+      "artifact": "proofs/proof.lrat"
+    },
+    {
+      "obligation_id": "pf.unsat.000001.cake_lpr_check",
+      "kind": "formal_theorem",
+      "checker": "cake_lpr",
+      "status": "passed",
+      "artifact": "proofs/proof.lrat"
+    }
+  ],
+  "checker_results": [
+    {
+      "checker": "cadical",
+      "result": "passed",
+      "formal_verified": false,
+      "notes": "UNSAT; DRAT and LRAT proofs written."
+    },
+    {
+      "checker": "drat-trim",
+      "result": "passed",
+      "formal_verified": false,
+      "notes": "DRAT proof verified; exit 0"
+    },
+    {
+      "checker": "lrat-trim",
+      "result": "passed",
+      "formal_verified": false,
+      "notes": "LRAT proof verified; exit 20 (DIMACS UNSAT convention)"
+    },
+    {
+      "checker": "cake_lpr",
+      "result": "passed",
+      "formal_verified": true,
+      "checker_version": "tanyongkiam/cake_lpr@a4323b2 (HOL4-verified CakeML binary)",
+      "notes": "Output: 's VERIFIED UNSAT'. Acceptance is a formal soundness guarantee, not a heuristic check."
+    }
+  ],
+  "evidence_class": "E7_FORMALLY_VERIFIED",
+  "flags": [],
+  "artifacts": {
+    "runpack": "runpacks/pf.unsat.000001/manifest.json",
+    "source_hash": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
+  },
+  "metadata": {
+    "created_at": "2026-06-03T00:00:00Z",
+    "proofforge_version": "0.4.0",
+    "generated_by": "omniforge/lanes/sat_claim.py",
+    "tags": ["sat", "unsat_certificate", "cake_lpr", "three_checker"],
+    "notes": "Trust anchor: cake_lpr (HOL4-verified). CaDiCaL is fully untrusted — a solver bug cannot produce a proof that cake_lpr accepts unless the formula is genuinely unsatisfiable."
+  }
+}

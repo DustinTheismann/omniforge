@@ -1,0 +1,129 @@
+name: ProofForge Protocol Tests
+
+on:
+  push:
+    branches: ["main", "claude/**", "score-*"]
+    paths:
+      - "protocols/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - ".github/workflows/proofforge-protocols.yml"
+  pull_request:
+    paths:
+      - "protocols/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - ".github/workflows/proofforge-protocols.yml"
+
+jobs:
+  protocol-tests:
+    name: Protocol Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package + test dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev]" 2>/dev/null || pip install -e . && pip install pytest jsonschema pyyaml
+
+      - name: Run protocol tests
+        run: |
+          python -m pytest tests/test_claim_protocol.py \
+                           tests/test_runpack_protocol.py \
+                           tests/test_evidence_grader.py \
+                           -v --tb=short
+
+  schema-lint:
+    name: JSON Schema & YAML lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install jsonschema pyyaml
+
+      - name: Validate JSON schema files
+        run: |
+          python -c "
+          import json, pathlib, sys
+          schemas = list(pathlib.Path('protocols').rglob('*.json'))
+          errors = []
+          for p in schemas:
+              try:
+                  json.loads(p.read_text())
+                  print(f'OK  {p}')
+              except json.JSONDecodeError as e:
+                  errors.append(f'FAIL {p}: {e}')
+          if errors:
+              print('\n'.join(errors), file=sys.stderr)
+              sys.exit(1)
+          print(f'All {len(schemas)} JSON files valid.')
+          "
+
+      - name: Validate YAML files
+        run: |
+          python -c "
+          import yaml, pathlib, sys
+          yamls = list(pathlib.Path('protocols').rglob('*.yaml')) + list(pathlib.Path('protocols').rglob('*.yml'))
+          errors = []
+          for p in yamls:
+              try:
+                  yaml.safe_load(p.read_text())
+                  print(f'OK  {p}')
+              except yaml.YAMLError as e:
+                  errors.append(f'FAIL {p}: {e}')
+          if errors:
+              print('\n'.join(errors), file=sys.stderr)
+              sys.exit(1)
+          print(f'All {len(yamls)} YAML files valid.')
+          "
+
+      - name: Validate all example claims against schema
+        run: |
+          python -c "
+          import json, pathlib, sys
+          from protocols.claim_protocol.validate import validate_claim
+          examples = list(pathlib.Path('protocols/claim_protocol/examples').glob('*.json'))
+          errors = []
+          for p in examples:
+              claim = json.loads(p.read_text())
+              errs = validate_claim(claim)
+              for e in errs:
+                  errors.append(f'{p.name}: {e}')
+          if errors:
+              print('\n'.join(errors), file=sys.stderr)
+              sys.exit(1)
+          print(f'All {len(examples)} example claims valid.')
+          "
+
+  validate-protocols-make:
+    name: make validate-protocols
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -e . && pip install pytest jsonschema pyyaml
+
+      - name: make validate-protocols
+        run: make validate-protocols

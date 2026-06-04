@@ -1,0 +1,216 @@
+{
+  "description": "Offline FriCAS integration cache for the `by fricas_integrate` tactic. Lets Lean/Mathlib CI resolve antiderivatives without a live FriCAS process. Regenerate with `python -m fricas_bridge.offline_cache --generate`.",
+  "entries": {
+    "012de1acec5fd839a388a5f6942aea3404c827070c0ab1bfaf02b8096672aa99": {
+      "antiderivative": "log(x) + log(x+1)",
+      "class": "C",
+      "integrand": "(2*x+1)/(x*(x+1))",
+      "label": "two_poles_linear",
+      "source": "corpus:two_poles_linear",
+      "var": "x"
+    },
+    "014e0665ad2d240c05730883a2bf09191c0dc14d75478616e9cbe893152db2d5": {
+      "antiderivative": "-log(x) + log(x-1)/2 + log(x+1)/2",
+      "class": "D",
+      "integrand": "1/(x*(x-1)*(x+1))",
+      "label": "three_poles_sym",
+      "source": "corpus:three_poles_sym",
+      "var": "x"
+    },
+    "0a1b4c7abd04bd64ab4c5af039430083bf2c8c6969c45e9793a9fe13d2fa260f": {
+      "antiderivative": "log(x-1)/4 + log(x+1)/4 - log(x^2+1)/4",
+      "class": "E",
+      "integrand": "x/(x^4-1)",
+      "label": "x_over_x4m1",
+      "source": "corpus:x_over_x4m1",
+      "var": "x"
+    },
+    "13f280c90f2b6b1b0a0de8712473f7c4f9d37e73348e7e746e7b78c5ace01ae7": {
+      "antiderivative": "atan(x^2)",
+      "class": "A",
+      "integrand": "2*x/(1+x^4)",
+      "label": "arctan_chain",
+      "source": "corpus+claim:arctan_chain/pf.integral.bronstein_004",
+      "var": "x"
+    },
+    "163eca3ec63bb6810cdcc926a4f7521d7a5002fc11ef84d93201d22f18e3c0cb": {
+      "antiderivative": "x^3*log(x)/3 - x^3/9",
+      "class": "B",
+      "integrand": "x^2*log(x)",
+      "label": "x2_log_x",
+      "source": "corpus:x2_log_x",
+      "var": "x"
+    },
+    "16ff50413ba3f89f1bfebb1d26acbb65c81def4f2afca4c52cd738796e0225eb": {
+      "antiderivative": "atan(x/2)/2",
+      "class": "A",
+      "integrand": "1/(x^2+4)",
+      "label": "quadratic_arctan",
+      "source": "corpus:quadratic_arctan",
+      "var": "x"
+    },
+    "1a4859d1a34bedd8d2b63621bc10dd5ddc3321f98d351f59549c094aaaf261a0": {
+      "antiderivative": "-log(x+1) + 4*log(x+2)",
+      "class": "C",
+      "integrand": "(3*x+2)/((x+1)*(x+2))",
+      "label": "pf_shifted_2",
+      "source": "corpus:pf_shifted_2",
+      "var": "x"
+    },
+    "21d8c5d7d414ab8a87351cb76daf923f5a76a5403dbeb87535d6784fb2b780f2": {
+      "antiderivative": "x + log(x+1)",
+      "class": "B",
+      "integrand": "(x+2)/(x+1)",
+      "label": "linear_over_linear",
+      "source": "corpus:linear_over_linear",
+      "var": "x"
+    },
+    "2c5c7715c12098c0c7e42bae22ad21fa680923d0fa12228ec00dda6a59f2a014": {
+      "antiderivative": "log(x^2-4)/2",
+      "class": "B",
+      "integrand": "x/(x^2-4)",
+      "label": "log_quadratic_neg",
+      "source": "corpus+claim:log_quadratic_neg/pf.integral.bronstein_008",
+      "var": "x"
+    },
+    "2f52fd16147be12cdf2060f9684a863f95ceba600c0536a2ef91a8536bfffd0c": {
+      "antiderivative": "log(x)/2 - log(x+1) + log(x+2)/2",
+      "class": "D",
+      "integrand": "1/(x*(x+1)*(x+2))",
+      "label": "three_poles",
+      "source": "corpus+claim:three_poles/pf.integral.bronstein_009",
+      "var": "x"
+    },
+    "4a9a051a3d5267fb33bb5e657f56395719fc8ee6c7ff3eec3f6817aed8136051": {
+      "antiderivative": "log(x)/2 + log(x+2)/2",
+      "class": "C",
+      "integrand": "(x+1)/(x*(x+2))",
+      "label": "partial_fractions",
+      "source": "corpus+claim:partial_fractions/pf.integral.bronstein_005",
+      "var": "x"
+    },
+    "57f30e47e965dc33ec8496726d9cb0672a471f5b4441d1e01b0eafa89d6f2d35": {
+      "antiderivative": "log(x^2+1)/2",
+      "class": "A",
+      "integrand": "x/(x^2+1)",
+      "label": "simple_log",
+      "source": "corpus+claim:simple_log/pf.integral.bronstein_003",
+      "var": "x"
+    },
+    "5c4e8e03824a541c75842681c1a97ab5043a9781e382db72e2296a2ea2216330": {
+      "antiderivative": "log(x^2+1)^2/2 + x^2/2 - log(x^2+1)/2",
+      "class": "A",
+      "integrand": "(2*x*log(x^2+1)+x^3)/(x^2+1)",
+      "label": "bronstein_1_1",
+      "source": "corpus+claim:bronstein_1_1/pf.integral.bronstein_002",
+      "var": "x"
+    },
+    "5e92f76d449191887f7b2986dcea26d37eaf30eb8f4ca0348376d6cd6e226580": {
+      "antiderivative": "log(x+1)/2 - log(x+2) + log(x+3)/2",
+      "class": "D",
+      "integrand": "1/((x+1)*(x+2)*(x+3))",
+      "label": "three_poles_shifted",
+      "source": "corpus:three_poles_shifted",
+      "var": "x"
+    },
+    "5fd8d419c2f14068c48ee7dd0cb2c47b10ed40b38a3eb81bc7b0c2446985a091": {
+      "antiderivative": "log(x)/6 - log(x+1)/2 + log(x+2)/2 - log(x+3)/6",
+      "class": "D",
+      "integrand": "1/(x*(x+1)*(x+2)*(x+3))",
+      "label": "four_poles",
+      "source": "corpus:four_poles",
+      "var": "x"
+    },
+    "8c9f08023991617f7a711ba44da9e9fdb51e1cac5e0569d0067520bed67099de": {
+      "antiderivative": "atan(x+1)",
+      "class": "A",
+      "integrand": "1/(x^2+2*x+2)",
+      "label": "arctan_shifted",
+      "source": "corpus+claim:arctan_shifted/pf.integral.bronstein_006",
+      "var": "x"
+    },
+    "b3e828222da2aed0336b7b234a7695ea2db7192cb31151fdad799c0297110d54": {
+      "antiderivative": "log(x-3)/2 - log(x-1)/2",
+      "class": "C",
+      "integrand": "1/((x-1)*(x-3))",
+      "label": "pf_distinct_2",
+      "source": "corpus:pf_distinct_2",
+      "var": "x"
+    },
+    "c8968577a9bd4d8b9c6573abcbf302ab2e8416fa71c95c280288bbce1def44ba": {
+      "antiderivative": "log(x+1)",
+      "class": "B",
+      "integrand": "1/(x+1)",
+      "label": "recip_linear",
+      "source": "corpus:recip_linear",
+      "var": "x"
+    },
+    "cbc499e4ed7293755e0c06d630c85e6f3917117616695d7800fe321472b587a6": {
+      "antiderivative": "x*log(x) - x",
+      "class": "B",
+      "integrand": "log(x)",
+      "label": "log_x",
+      "source": "corpus:log_x",
+      "var": "x"
+    },
+    "cfb9c42e8ebabe3726b6d5d6ffde42a05afc332a8adbb27ef505ccf33962b90e": {
+      "antiderivative": "log(x-1)/2 - log(x+1)/2",
+      "class": "C",
+      "integrand": "1/(x^2-1)",
+      "label": "rational_poles",
+      "source": "corpus:rational_poles",
+      "var": "x"
+    },
+    "d1058f3f9a1223795a44a2f02a36a9c25955b334cf98293ce00d6a494153a4dd": {
+      "antiderivative": "log(x+2)/2 - log(x+4)/2",
+      "class": "C",
+      "integrand": "1/((x+2)*(x+4))",
+      "label": "log_ratio_2",
+      "source": "corpus:log_ratio_2",
+      "var": "x"
+    },
+    "e643a074b019341af54e030c987937191dc0b7c78a0e3dbfab4e747abba3f381": {
+      "antiderivative": "log(x)/2 + 2*log(x+1) - log(x+2)/2",
+      "class": "D",
+      "integrand": "(2*x^2+5*x+1)/(x*(x+1)*(x+2))",
+      "label": "pf_weighted",
+      "source": "corpus:pf_weighted",
+      "var": "x"
+    },
+    "f52733511992b7de127bda6c247ed6fb5e1ad8a10882efbd444559e5c11f62b2": {
+      "antiderivative": "-log(x) + log(x-1)/2 + log(x+1)/2",
+      "class": "E",
+      "integrand": "1/(x*(x+1)*(x-1))",
+      "label": "three_poles_sym_alt",
+      "source": "corpus:three_poles_sym_alt",
+      "var": "x"
+    },
+    "f5eba520425b6cb269d4710abf8c68dd7dc5b68bae0d77151c31c068af067459": {
+      "antiderivative": "log(x)",
+      "class": "B",
+      "integrand": "1/x",
+      "label": "recip_x",
+      "source": "corpus+claim:recip_x/pf.integral.bronstein_007",
+      "var": "x"
+    },
+    "f7380e9ecb92d7261a0771eb9826cf13510ed5e3f752280a7371b8bd8e8e947d": {
+      "antiderivative": "atan(x)",
+      "class": "A",
+      "integrand": "1/(1+x^2)",
+      "label": "basic_arctan",
+      "source": "corpus:basic_arctan",
+      "var": "x"
+    },
+    "fc8fe058b3ed5bfe80d3fc520fb441ffd9267073d0d2add36a70ca1d943a6a45": {
+      "antiderivative": "log(x) - log(x-1)/2 + log(x+1)/2",
+      "class": "D",
+      "integrand": "(x^2-x-1)/(x*(x-1)*(x+1))",
+      "label": "pf_numer_deg2",
+      "source": "corpus:pf_numer_deg2",
+      "var": "x"
+    }
+  },
+  "entry_count": 26,
+  "key_scheme": "sha256(integrand||var)",
+  "schema_version": "0.1.0"
+}

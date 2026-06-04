@@ -1,0 +1,61 @@
+{
+  "runpack_id": "rp.pf.integral.bronstein_006.lean430",
+  "claim_id": "pf.integral.bronstein_006",
+  "schema_version": "0.1.0",
+  "created_at": "2026-05-30T02:37:00+00:00",
+  "environment": {
+    "platform": "CI/ubuntu-latest",
+    "python_version": "3.12",
+    "tool_versions": {
+      "lean4": "leanprover/lean4:v4.30.0",
+      "mathlib4": "v4.30.0",
+      "fricas": "1.3.11"
+    },
+    "container_image": "ubuntu-latest",
+    "env_vars": {}
+  },
+  "commands": [
+    {
+      "seq": 0,
+      "command": "lake update",
+      "cwd": "fricas_bridge",
+      "exit_code": 0,
+      "stdout_hash": null,
+      "stderr_hash": null,
+      "elapsed_ms": null
+    },
+    {
+      "seq": 1,
+      "command": "lake exe cache get",
+      "cwd": "fricas_bridge",
+      "exit_code": 0,
+      "stdout_hash": null,
+      "stderr_hash": null,
+      "elapsed_ms": null
+    },
+    {
+      "seq": 2,
+      "command": "lake build RischVerification",
+      "cwd": "fricas_bridge",
+      "exit_code": 0,
+      "stdout_hash": null,
+      "stderr_hash": null,
+      "elapsed_ms": null
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "fricas_bridge/RischVerification.lean",
+      "role": "proof",
+      "sha256": "f59297aacc476e61d4e6427a36e8aabc5cc1ba0d6e3b7a6dd07f766d4e533ed6",
+      "size_bytes": 17537
+    }
+  ],
+  "verification_result": "passed",
+  "evidence_class_claimed": "E7_FORMALLY_VERIFIED",
+  "hash_chain": {
+    "manifest_hash": "d7325ab8c820cb2cb95f7d47475ea3c06091d9cad994cd1af02bfe355eb81081",
+    "claim_hash": null,
+    "prior_runpack": null
+  }
+}

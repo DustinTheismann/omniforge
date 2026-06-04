@@ -1,0 +1,10 @@
+{
+  "cadical":   {"repo": "https://github.com/arminbiere/cadical",    "ref": "rel-3.0.0"},
+  "drat_trim": {"repo": "https://github.com/marijnheule/drat-trim", "ref": "v05.22.2023"},
+  "lrat_trim": {"repo": "https://github.com/arminbiere/lrat-trim",  "ref": "rel-0.2.0"},
+  "cake_lpr":  {
+    "repo":    "https://github.com/tanyongkiam/cake_lpr",
+    "ref":     "a4323b203cc9ecd584ba7da9e3fff08135a09d5f",
+    "notes":   "HOL4-verified LPR/LRAT checker compiled from CakeML assembly (gcc basis_ffi.c cake_lpr.S). No CakeML compiler required at build time."
+  }
+}

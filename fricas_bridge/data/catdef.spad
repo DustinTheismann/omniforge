@@ -1,0 +1,448 @@
+)abbrev category ABELGRP AbelianGroup
+++ Description:
+++ The class of abelian groups, i.e. additive monoids where
+++ each element has an additive inverse.
+++
+++ Axioms:
+++   \spad{-(-x) = x}
+++   \spad{x+(-x) = 0}
+AbelianGroup() : Category == CancellationAbelianMonoid with
+      "-": % -> %
+      "-": (%,%) -> %
+      "*": (Integer,%) -> %
+
+)abbrev category ABELMON AbelianMonoid
+++ Description:
+++ The class of additive commutative monoids.
+++
+++ Axioms:
+++   \spad{0+x = x}
+++   \spad{x+0 = x}
+AbelianMonoid() : Category == AbelianSemiGroup with
+      0 : constant -> %
+      zero? : % -> Boolean
+      "*": (NonNegativeInteger,%) -> %
+      opposite? : (%,%) -> Boolean
+
+)abbrev category ABELSG AbelianSemiGroup
+++ Description:
+++ the class of all additive commutative semigroups.
+++
+++ Axioms:
+++   \spad{(x+y)+z = x+(y+z)}
+++   \spad{x+y = y+x}
+AbelianSemiGroup() : Category == SetCategory with
+      "+": (%,%) -> %
+      "*": (PositiveInteger,%) -> %
+
+)abbrev category ALGEBRA Algebra
+++ Description:
+++ The category of associative algebras.
+++
+++ Axioms:
+++   \spad{r*(a*b) = (r*a)*b}
+++   \spad{(a*b)*r = a*(b*r)}
+Algebra(R : CommutativeRing) : Category ==
+  Join(Ring, NonAssociativeAlgebra(R)) with
+      coerce : R -> %
+
+)abbrev category BASTYPE BasicType
+++ Description:
+++ BasicType is the basic category for equality.
+BasicType() : Category == with
+      "=": (%,%) -> Boolean
+      "~=": (%,%) -> Boolean
+
+)abbrev category BMODULE BiModule
+++ Description:
+++ A BiModule is both a left and right module.
+++
+++ Axiom:
+++   \spad{r*(x*s) = (r*x)*s}
+BiModule(R : SemiRng, S : SemiRng) : Category ==
+  Join(LeftModule(R), RightModule(S))
+
+)abbrev category CABMON CancellationAbelianMonoid
+++ Description:
+++ AbelianMonoid with cancellation property.
+++
+++ Axioms:
+++   \spad{c = a+b <=> c-b = a}
+CancellationAbelianMonoid() : Category == AbelianMonoid with
+      subtractIfCan : (%,%) -> Union(%,"failed")
+
+)abbrev category CHARNZ CharacteristicNonZero
+++ Description:
+++ Rings of Characteristic Non Zero
+CharacteristicNonZero() : Category == Ring
+
+)abbrev category CHARZ CharacteristicZero
+++ Description:
+++ Rings of Characteristic Zero.
+CharacteristicZero() : Category == Ring
+
+)abbrev category COMRING CommutativeRing
+++ Description:
+++ The category of commutative rings with unity.
+CommutativeRing() : Category == Join(Ring, Algebra(%), CommutativeStar)
+
+)abbrev category DIFRING DifferentialRing
+++ Description:
+++ An ordinary differential ring.
+++
+++ Axioms:
+++   \spad{differentiate(x+y) = differentiate(x)+differentiate(y)}
+++   \spad{differentiate(x*y) = x*differentiate(y) + differentiate(x)*y}
+DifferentialRing() : Category == Ring with
+    differentiate : % -> %
+    D : % -> %
+    differentiate : (%, NonNegativeInteger) -> %
+    D : (%, NonNegativeInteger) -> %
+
+)abbrev category DIVRING DivisionRing
+++ Description:
+++ A division ring where all non-zero elements have multiplicative inverses.
+DivisionRing() : Category ==
+ Join(EntireRing, TwoSidedRecip) with
+      "^": (%,Integer) -> %
+      inv : % -> %
+
+)abbrev category ENTIRER EntireRing
+++ Description:
+++ Entire Rings with no zero divisors.
+++
+++ Axioms:
+++   \spad{not(1=0)}
+EntireRing() : Category == Join(Ring, noZeroDivisors) with
+      "exquo": (%,%) -> Union(%,"failed")
+      unitNormal : % -> Record(unit : %, canonical : %, associate : %)
+      unitCanonical : % -> %
+      associates? : (%, %) -> Boolean
+      unit? : % -> Boolean
+
+)abbrev category EUCDOM EuclideanDomain
+++ Description:
+++ A constructive euclidean domain.
+EuclideanDomain() : Category == PrincipalIdealDomain with
+      sizeLess? : (%, %) -> Boolean
+      euclideanSize : % -> NonNegativeInteger
+      divide : (%, %) -> Record(quotient : %, remainder : %)
+      "quo" : (%,%) -> %
+      "rem": (%,%) -> %
+      extendedEuclidean : (%, %) -> Record(coef1 : %, coef2 : %, generator : %)
+      multiEuclidean : (List %,%) -> Union(List %,"failed")
+
+)abbrev category FIELD Field
+++ Description:
+++ The category of commutative fields.
+++
+++ Axioms:
+++   \spad{a*(b/a) = b}
+++   \spad{inv(a) = 1/a}
+Field() : Category == Join(EuclideanDomain, UniqueFactorizationDomain,
+  DivisionRing, canonicalUnitNormal, canonicalsClosed) with
+      "/": (%,%) -> %
+      inv : % -> %
+
+)abbrev category FINITE Finite
+++ Description:
+++ The category of domains composed of a finite set of elements.
+++
+++ Axioms:
+++   \spad{lookup(index(n)) = n}
+++   \spad{index(lookup(s)) = s}
+Finite() : Category == Join(SetCategory, Comparable, Hashable) with
+      size : () -> NonNegativeInteger
+      index : PositiveInteger -> %
+      lookup : % -> PositiveInteger
+      random : () -> %
+      enumerate : () -> List %
+
+)abbrev category GCDDOM GcdDomain
+++ Description:
+++ This category describes domains where gcd can be computed.
+GcdDomain() : Category == Join(IntegralDomain, LeftOreRing) with
+      gcd : (%, %) -> %
+      gcd : List(%) -> %
+      lcm : (%, %) -> %
+      lcm : List(%) -> %
+
+)abbrev category GROUP Group
+++ Description:
+++ The class of multiplicative groups.
+++
+++ Axioms:
+++   \spad{inv(x)*x = 1}
+++   \spad{x*inv(x) = 1}
+Group() : Category == Join(Monoid, TwoSidedRecip, unitsKnown) with
+      inv : % -> %
+      "/": (%,%) -> %
+      "^": (%,Integer) -> %
+      conjugate : (%, %) -> %
+      commutator : (%, %) -> %
+
+)abbrev category INTDOM IntegralDomain
+++ Description:
+++ The category of commutative integral domains.
+IntegralDomain() : Category ==
+  Join(CommutativeRing, EntireRing)
+
+)abbrev category LMODULE LeftModule
+++ Description:
+++ The category of left modules over an rng.
+++
+++ Axioms:
+++   \spad{(a*b)*x = a*(b*x)}
+++   \spad{(a+b)*x = (a*x)+(b*x)}
+++   \spad{a*(x+y) = (a*x)+(a*y)}
+LeftModule(R : SemiRng) : Category == AbelianSemiGroup with
+      "*": (R,%) -> %
+
+)abbrev category LORER LeftOreRing
+++ Description:
+++ Left ore rings without zero divisors.
+LeftOreRing() : Category == EntireRing with
+   lcmCoef : (%, %) -> Record(llcm_res : %, coeff1 : %, coeff2 : %)
+
+)abbrev category MAGMA Magma
+++ Description:
+++ Magma is the class of all multiplicative magmas.
+Magma() : Category == with
+      "*": (%,%) -> %
+      "^": (%,PositiveInteger) -> %
+
+)abbrev category MAGMAWU MagmaWithUnit
+++ Description:
+++ Multiplicative magmas with unit.
+++
+++ Axioms:
+++   \spad{1*x = x}
+++   \spad{x*1 = x}
+MagmaWithUnit() : Category == Magma with
+      1 : constant -> %
+      one? : % -> Boolean
+      recip : % -> Union(%,"failed")
+      "^": (%,NonNegativeInteger) -> %
+
+)abbrev category MODULE Module
+++ Description:
+++ The category of modules over a commutative ring.
+++
+++ Axioms:
+++   \spad{1*x = x}
+++   \spad{(a*b)*x = a*(b*x)}
+++   \spad{(a+b)*x = (a*x)+(b*x)}
+++   \spad{a*(x+y) = (a*x)+(a*y)}
+Module(R : CommutativeRing) : Category == BiModule(R, R)
+
+)abbrev category MONOID Monoid
+++ Description:
+++ The class of multiplicative monoids.
+++
+++ Axioms:
+++   \spad{1*x = x}
+++   \spad{x*1 = x}
+Monoid() : Category == Join(SemiGroup, MagmaWithUnit)
+
+)abbrev category NAALG NonAssociativeAlgebra
+++ Description:
+++ NonAssociativeAlgebra is the category of non-associative algebras.
+++
+++ Axioms:
+++   \spad{r*(a*b) = (r*a)*b}
+NonAssociativeAlgebra(R : CommutativeRing) : Category == Join(NonAssociativeRng, Module(R))
+
+)abbrev category NARNG NonAssociativeRng
+++ Description:
+++ NonAssociativeRng is a basic ring-type structure, not necessarily associative.
+++
+++ Axioms:
+++   \spad{x*(y+z) = x*y + x*z}
+++   \spad{(x+y)*z = x*z + y*z}
+NonAssociativeRng() : Category == Join(NonAssociativeSemiRng, AbelianGroup)
+
+)abbrev category NARING NonAssociativeRing
+++ Description:
+++ A NonAssociativeRing is a non-associative rng which has a unit.
+NonAssociativeRing() : Category == Join(NonAssociativeRng, NonAssociativeSemiRing) with
+      characteristic : () -> NonNegativeInteger
+      coerce : Integer -> %
+
+)abbrev category NASRNG NonAssociativeSemiRng
+++ Description:
+++ Semirings, not necessarily associative, not necessarily commutative, no 1.
+NonAssociativeSemiRng() : Category == Join(AbelianSemiGroup, Magma) with
+      antiCommutator : (%,%) -> %
+
+)abbrev category NASRING NonAssociativeSemiRing
+++ Description:
+++ Semirings, not necessarily associative, not necessarily commutative, with 0 and 1.
+NonAssociativeSemiRing() : Category == Join(NonAssociativeSemiRng, AbelianMonoid, MagmaWithUnit)
+
+)abbrev category OAGROUP OrderedAbelianGroup
+++ Description:
+++ Ordered abelian groups where addition preserves ordering.
+OrderedAbelianGroup() : Category ==
+        Join(OrderedCancellationAbelianMonoid, AbelianGroup) with
+     positive? : % -> Boolean
+     negative? : % -> Boolean
+     sign     : % -> Integer
+     abs      : % -> %
+
+)abbrev category OAMON OrderedAbelianMonoid
+++ Description:
+++ Ordered sets which are also abelian monoids.
+OrderedAbelianMonoid() : Category ==
+        Join(OrderedAbelianSemiGroup, AbelianMonoid)
+
+)abbrev category OCAMON OrderedCancellationAbelianMonoid
+++ Description:
+++ Ordered abelian cancellation monoids.
+OrderedCancellationAbelianMonoid() : Category ==
+        Join(OrderedAbelianMonoid, CancellationAbelianMonoid)
+
+)abbrev category ORDMON OrderedMonoid
+++ Description:
+++ Ordered monoids where multiplication preserves ordering.
+++
+++ Axioms:
+++   \spad{x < y => x*z < y*z}
+++   \spad{x < y => z*x < z*y}
+OrderedMonoid() : Category == Join(OrderedSemiGroup, Monoid)
+
+)abbrev category ORDRING OrderedRing
+++ Description:
+++ Ordered rings where ring operations are compatible with ordering.
+++
+++ Axiom:
+++   \spad{0<a and 0<b => 0 < a*b}
+OrderedRing() : Category == Join(OrderedAbelianGroup, OrderedMonoid, Ring,
+         CharacteristicZero)
+
+)abbrev category ORDSET OrderedSet
+++ Description:
+++ The class of totally ordered sets.
+OrderedSet() : Category == Join(Comparable, PartialOrder) with
+    max : (%, %) -> %
+    min : (%, %) -> %
+
+)abbrev category OASGP OrderedAbelianSemiGroup
+++ Description:
+++ Ordered abelian semigroups where addition preserves ordering.
+++   \spad{x < y => x+z < y+z}
+OrderedAbelianSemiGroup() : Category == Join(OrderedSet, AbelianSemiGroup)
+
+)abbrev category OSGROUP OrderedSemiGroup
+++ Description:
+++ Semigroups with compatible ordering.
+OrderedSemiGroup() : Category == Join(OrderedSet, SemiGroup)
+
+)abbrev category PORDER PartialOrder
+++ Description:
+++ The class of partially ordered sets.
+PartialOrder() : Category == with
+    "<": (%,%) -> Boolean
+    ">": (%, %) -> Boolean
+    ">=": (%, %) -> Boolean
+    "<=": (%, %) -> Boolean
+
+)abbrev category PDRING PartialDifferentialRing
+++ Description:
+++ A partial differential ring with differentiations indexed by a parameter type S.
+++
+++ Axioms:
+++   \spad{differentiate(x+y, e) = differentiate(x, e) + differentiate(y, e)}
+++   \spad{differentiate(x*y, e) = x*differentiate(y, e) + differentiate(x, e)*y}
+PartialDifferentialRing(S : SetCategory) : Category == Ring with
+    differentiate : (%, S) -> %
+    D : (%, S) -> %
+
+)abbrev category PID PrincipalIdealDomain
+++ Description:
+++ The category of constructive principal ideal domains.
+PrincipalIdealDomain() : Category == GcdDomain with
+      principalIdeal : List % -> Record(coef : List %, generator : %)
+      expressIdealMember : (List %,%) -> Union(List %,"failed")
+
+)abbrev category COMPAR Comparable
+++ Description:
+++ Sets equipped with a linear order.
+Comparable() : Category == SetCategory with
+    smaller? : (%, %) -> Boolean
+
+)abbrev category RMODULE RightModule
+++ Description:
+++ The category of right modules over an rng.
+++
+++ Axioms:
+++   \spad{x*(a*b) = (x*a)*b}
+++   \spad{x*(a+b) = (x*a)+(x*b)}
+++   \spad{(x+y)*a = (x*a)+(y*a)}
+RightModule(R : SemiRng) : Category == AbelianSemiGroup with
+      "*" : (%, R) -> %
+
+)abbrev category RING Ring
+++ Description:
+++ The category of rings with unity, always associative.
+Ring() : Category == Join(Rng, SemiRing, NonAssociativeRing, unitsKnown)
+
+)abbrev category SRNG SemiRng
+++ Description:
+++ The category of associative semirings, not necessarily commutative, no 1.
+SemiRng() : Category == Join(NonAssociativeSemiRng, BiModule(%, %), SemiGroup)
+
+)abbrev category SRING SemiRing
+++ Description:
+++ The category of associative semirings with 0 and 1.
+SemiRing() : Category == Join(NonAssociativeSemiRing, SemiRng, Monoid)
+
+)abbrev category RNG Rng
+++ Description:
+++ The category of associative rings, not necessarily with a 1.
+++
+++ Axioms:
+++   \spad{x*(y+z) = x*y + x*z}
+++   \spad{(x+y)*z = x*z + y*z}
+Rng() : Category == Join(NonAssociativeRng, SemiRng) with
+      annihilate? : (%,%) -> Boolean
+
+)abbrev category SGROUP SemiGroup
+++ Description:
+++ the class of all multiplicative semigroups.
+++
+++ Axioms:
+++   \spad{(x*y)*z = x*(y*z)}
+SemiGroup() : Category == Magma
+
+)abbrev category HASHABL Hashable
+++ Description:
+++ All domains for which we can compute hash.
+Hashable() : Category == BasicType with
+      hash : % -> SingleInteger
+      hashUpdate! : (HashState, %) -> HashState
+
+)abbrev category SETCAT SetCategory
+++ Description:
+++ SetCategory is the basic category for describing a collection with equality.
+SetCategory() : Category == Join(BasicType, CoercibleTo(OutputForm)) with
+      latex : % -> String
+
+)abbrev category UFD UniqueFactorizationDomain
+++ Description:
+++ A constructive unique factorization domain.
+UniqueFactorizationDomain() : Category == GcdDomain with
+      prime? : % -> Boolean
+      squareFree    : % -> Factored(%)
+      squareFreePart : % -> %
+      factor : % -> Factored(%)
+
+)abbrev category OINTDOM OrderedIntegralDomain
+++ Description:
+++ The category of ordered commutative integral domains.
+OrderedIntegralDomain() : Category ==
+  Join(IntegralDomain, OrderedRing)
+
+)abbrev category ORDFIN OrderedFinite
+++ Description:
+++ Ordered finite sets.
+OrderedFinite() : Category == Join(OrderedSet, Finite)

@@ -4,18 +4,36 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "omniforge"
-version = "0.2.0"
-description = "Verifiable Algorithm Foundry seed: contracts + artifact bundling + CI"
+version = "0.4.0"
+description = "Lane-based verifiable algorithm foundry: formal proofs, reproducible runpacks, fail-closed evidence gates"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [{name = "Dustin", email = "example@example.com"}]
 dependencies = [
   "jsonschema>=4.22.0",
+  "sympy>=1.12",
+  "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0",
+  "hypothesis>=6.0",
 ]
 
 [project.scripts]
 omniforge = "omniforge.cli:main"
 
 [tool.setuptools]
-packages = ["omniforge", "omniforge.lanes", "omniforge.eval", "omniforge.artifacts"]
+packages = [
+  "omniforge", "omniforge.lanes", "omniforge.eval", "omniforge.artifacts",
+  "omniforge.contracts",
+  "backbone", "backbone.fricas_runtime", "backbone.cas_protocol",
+  "backbone.proof_template", "backbone.corpus", "backbone.tests",
+  "protocols", "protocols.claim_protocol", "protocols.runpack_protocol",
+  "protocols.evidence_protocol", "protocols.obligation_protocol",
+  "fricas_bridge",
+  "cross_prover",
+  "ml",
+]

@@ -1,0 +1,47 @@
+{
+  "claim_id": "pf.algo.000001",
+  "claim_type": "algorithm_benchmark",
+  "title": "Insertion sort correctness and O(n²) benchmark claim",
+  "natural_language": "An insertion sort implementation is functionally correct (output is a sorted permutation of the input) and runs in O(n²) time on a list of n integers.",
+  "source": {
+    "kind": "llm",
+    "name": "Claude",
+    "version": "example"
+  },
+  "inputs": {
+    "algorithm": "insertion_sort",
+    "language": "python",
+    "input_distribution": "random integers 0–1000",
+    "n_values": [100, 1000, 10000]
+  },
+  "outputs": {
+    "correctness_claim": "sorted permutation for all inputs tested",
+    "performance_claim": "time scales as O(n^2)"
+  },
+  "formal_targets": [],
+  "assumptions": [
+    {"kind": "environment", "statement": "CPython 3.11 on single-threaded execution", "discharged": false},
+    {"kind": "statistical", "statement": "Performance claim holds for uniform random input; adversarial inputs may differ", "discharged": false}
+  ],
+  "obligations": [
+    {
+      "obligation_id": "pf.algo.000001.correctness",
+      "kind": "numeric_property",
+      "checker": "pytest",
+      "status": "pending"
+    },
+    {
+      "obligation_id": "pf.algo.000001.benchmark",
+      "kind": "benchmark_performance",
+      "checker": "timeit",
+      "status": "pending"
+    }
+  ],
+  "checker_results": [],
+  "evidence_class": "E2_PARSED",
+  "flags": [],
+  "artifacts": {},
+  "metadata": {
+    "tags": ["algorithm", "sorting", "benchmark"]
+  }
+}

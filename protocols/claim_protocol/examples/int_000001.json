@@ -1,0 +1,42 @@
+{
+  "claim_id": "pf.integral.000001",
+  "claim_type": "symbolic_antiderivative",
+  "title": "Derivative certificate for log(x²+1)/2",
+  "natural_language": "The derivative of log(x²+1)/2 with respect to x is x/(x²+1). No domain restriction is needed because x²+1 > 0 for all real x.",
+  "source": {
+    "kind": "cas",
+    "name": "FriCAS",
+    "version": "1.3.11"
+  },
+  "inputs": {
+    "integrand": "x/(x^2+1)",
+    "variable": "x"
+  },
+  "outputs": {
+    "candidate_antiderivative": "log(x^2+1)/2"
+  },
+  "formal_targets": [
+    {
+      "system": "Lean4",
+      "statement_text": "∀ x : ℝ, HasDerivAt (fun t => Real.log (t^2 + 1) / 2) (x / (x^2 + 1)) x",
+      "status": "stub"
+    }
+  ],
+  "assumptions": [],
+  "obligations": [
+    {
+      "obligation_id": "pf.integral.000001.derivative",
+      "kind": "formal_derivative_check",
+      "checker": "Lean4",
+      "status": "pending"
+    }
+  ],
+  "checker_results": [],
+  "evidence_class": "E2_PARSED",
+  "flags": [],
+  "artifacts": {},
+  "metadata": {
+    "tags": ["integration", "Class-A", "no-domain-restriction", "bronstein"],
+    "notes": "FriCAS corpus entry: simple_log"
+  }
+}

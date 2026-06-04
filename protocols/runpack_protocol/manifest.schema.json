@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "protocols/runpack_protocol/manifest.schema.json",
+  "title": "ProofForge Runpack Manifest",
+  "description": "Reproducible execution record. Every claim that passes through the Claim Transmutation Engine emits a runpack so any third party can replay the evidence.",
+  "type": "object",
+  "required": ["runpack_id", "claim_id", "schema_version", "created_at", "environment", "commands", "artifacts", "verification_result", "hash_chain"],
+  "additionalProperties": false,
+  "properties": {
+    "runpack_id": {
+      "type": "string",
+      "description": "Unique runpack identifier: rp.<claim_id>.<timestamp_ms>"
+    },
+    "claim_id": {
+      "type": "string",
+      "description": "The claim this runpack verifies"
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Runpack manifest schema version (semver)",
+      "default": "0.1.0"
+    },
+    "created_at": {
+      "type": "string",
+      "description": "ISO-8601 UTC timestamp"
+    },
+    "environment": {
+      "type": "object",
+      "required": ["platform", "tool_versions"],
+      "additionalProperties": false,
+      "properties": {
+        "platform":       { "type": "string" },
+        "python_version": { "type": ["string", "null"] },
+        "tool_versions":  {
+          "type": "object",
+          "description": "Pinned versions of every tool used",
+          "additionalProperties": { "type": "string" }
+        },
+        "container_image": { "type": ["string", "null"] },
+        "env_vars":        {
+          "type": "object",
+          "description": "Relevant (non-secret) environment variables",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "commands": {
+      "type": "array",
+      "description": "Ordered list of commands executed to produce the evidence",
+      "items": {
+        "type": "object",
+        "required": ["seq", "command", "exit_code"],
+        "additionalProperties": false,
+        "properties": {
+          "seq":        { "type": "integer" },
+          "command":    { "type": "string" },
+          "cwd":        { "type": ["string", "null"] },
+          "exit_code":  { "type": "integer" },
+          "stdout_hash":{ "type": ["string", "null"] },
+          "stderr_hash":{ "type": ["string", "null"] },
+          "elapsed_ms": { "type": ["number", "null"] }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "description": "All files produced or consumed, with content hashes",
+      "items": {
+        "type": "object",
+        "required": ["path", "role", "sha256"],
+        "additionalProperties": false,
+        "properties": {
+          "path":    { "type": "string" },
+          "role":    { "type": "string", "enum": ["input", "output", "proof", "theorem", "log", "runpack", "other"] },
+          "sha256":  { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "size_bytes": { "type": ["integer", "null"] }
+        }
+      }
+    },
+    "verification_result": {
+      "type": "string",
+      "enum": ["passed", "failed", "partial", "error", "not_run"],
+      "description": "Overall verification outcome for this runpack"
+    },
+    "evidence_class_claimed": {
+      "type": ["string", "null"],
+      "description": "The evidence class assigned at runpack creation time"
+    },
+    "hash_chain": {
+      "type": "object",
+      "required": ["manifest_hash"],
+      "additionalProperties": false,
+      "properties": {
+        "manifest_hash": {
+          "type": "string",
+          "description": "SHA-256 of this manifest file (computed after writing, field set to 'pending')"
+        },
+        "claim_hash":    { "type": ["string", "null"] },
+        "prior_runpack": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

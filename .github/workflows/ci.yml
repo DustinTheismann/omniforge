@@ -14,11 +14,26 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install
+      - name: System deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+
+      - name: Install SAT toolchain (cadical + drat-trim + lrat-trim + cake_lpr)
+        run: bash scripts/tools/install_sat_toolchain.sh
+
+      - name: Install Python package
         run: pip install -e .
 
       - name: Validate contracts
         run: make validate-contracts
 
-      - name: Demo run bundle
+      - name: Demo (three-checker UNSAT)
         run: make demo
+
+      - name: Upload demo artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sat-demo-bundle
+          path: artifacts/

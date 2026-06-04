@@ -1,0 +1,210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "protocols/claim_protocol/schema.json",
+  "title": "ProofForge Claim",
+  "description": "Universal atomic evidence object for ProofForge Ω. Every computational, mathematical, or scientific claim becomes an instance of this schema.",
+  "type": "object",
+  "required": ["claim_id", "claim_type", "natural_language", "source"],
+  "additionalProperties": false,
+  "properties": {
+    "claim_id": {
+      "type": "string",
+      "description": "Globally unique identifier in the form <foundry>.<domain>.<zero-padded-seq>",
+      "examples": ["pf.integral.000001", "pf.algo.000042", "pf.paper.arxiv_2401_00001"]
+    },
+    "claim_type": {
+      "type": "string",
+      "enum": [
+        "symbolic_antiderivative",
+        "algebraic_identity",
+        "theorem_statement",
+        "algorithm_benchmark",
+        "numerical_experiment",
+        "paper_claim",
+        "simulation_result",
+        "code_correctness",
+        "unsat_certificate"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "description": "Short human-readable title (≤ 120 chars)"
+    },
+    "natural_language": {
+      "type": "string",
+      "description": "Full natural-language statement of the claim"
+    },
+    "source": {
+      "$ref": "#/$defs/ClaimSource"
+    },
+    "inputs": {
+      "type": "object",
+      "description": "Type-specific structured inputs (contents vary by claim_type)"
+    },
+    "outputs": {
+      "type": "object",
+      "description": "Type-specific candidate outputs produced by the source"
+    },
+    "formal_targets": {
+      "type": "array",
+      "description": "One or more formal proof / spec targets for this claim",
+      "items": { "$ref": "#/$defs/FormalTarget" },
+      "default": []
+    },
+    "assumptions": {
+      "type": "array",
+      "description": "Domain or structural assumptions required for the claim to hold",
+      "items": { "$ref": "#/$defs/Assumption" },
+      "default": []
+    },
+    "obligations": {
+      "type": "array",
+      "description": "Decomposed proof/verification obligations for this claim",
+      "items": { "$ref": "#/$defs/Obligation" },
+      "default": []
+    },
+    "checker_results": {
+      "type": "array",
+      "description": "Results from individual checker runs",
+      "items": { "$ref": "#/$defs/CheckerResult" },
+      "default": []
+    },
+    "evidence_class": {
+      "type": "string",
+      "enum": [
+        "E0_RAW_CLAIM",
+        "E1_SOURCED",
+        "E2_PARSED",
+        "E3_EXECUTABLE",
+        "E4_REPRODUCED",
+        "E5_NUMERICALLY_SUPPORTED",
+        "E6_SYMBOLICALLY_SUPPORTED",
+        "E7_FORMALLY_VERIFIED",
+        "E8_CROSS_VERIFIED",
+        "E9_MULTI_METHOD",
+        "E10_ADVERSARIALLY_HARDENED",
+        "E11_FIELD_VALIDATED",
+        "EX_REFUTED"
+      ],
+      "default": "E0_RAW_CLAIM"
+    },
+    "artifacts": {
+      "type": "object",
+      "description": "Paths/hashes for all generated artifacts",
+      "additionalProperties": false,
+      "properties": {
+        "lean_file":        { "type": ["string", "null"] },
+        "coq_file":         { "type": ["string", "null"] },
+        "runpack":          { "type": ["string", "null"] },
+        "audit_card":       { "type": ["string", "null"] },
+        "counterexample":   { "type": ["string", "null"] },
+        "report":           { "type": ["string", "null"] },
+        "source_hash":      { "type": ["string", "null"] }
+      }
+    },
+    "flags": {
+      "type": "array",
+      "description": "Warning or informational flags set during processing",
+      "items": {
+        "type": "string",
+        "enum": [
+          "REQUIRES_ASSUMPTIONS",
+          "CHECKER_DISAGREEMENT",
+          "MISSING_LEMMA",
+          "TRANSLATION_FAILURE",
+          "SUSPECTED_CAS_BUG",
+          "HUMAN_REVIEW_REQUIRED",
+          "INCOMPLETE_PROOF",
+          "NONREPRODUCIBLE",
+          "OVERCLAIMING_RISK"
+        ]
+      },
+      "default": []
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "created_at":         { "type": "string" },
+        "updated_at":         { "type": "string" },
+        "proofforge_version": { "type": "string" },
+        "generated_by":       { "type": "string" },
+        "tags":               { "type": "array", "items": { "type": "string" } },
+        "notes":              { "type": "string" }
+      }
+    }
+  },
+
+  "$defs": {
+    "ClaimSource": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind":    { "type": "string", "enum": ["cas", "llm", "paper", "human", "code", "benchmark", "simulation"] },
+        "name":    { "type": "string" },
+        "version": { "type": "string" },
+        "url":     { "type": ["string", "null"] },
+        "doi":     { "type": ["string", "null"] },
+        "source_hash": { "type": ["string", "null"] }
+      }
+    },
+    "FormalTarget": {
+      "type": "object",
+      "required": ["system", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "system":         { "type": "string", "enum": ["Lean4", "Coq", "Isabelle", "Agda", "Z3", "CVC5", "other"] },
+        "statement_file": { "type": ["string", "null"] },
+        "statement_text": { "type": ["string", "null"] },
+        "status":         { "type": "string", "enum": ["proved", "sorry", "stub", "failed", "unknown"] },
+        "checker_version":{ "type": ["string", "null"] }
+      }
+    },
+    "Assumption": {
+      "type": "object",
+      "required": ["kind", "statement"],
+      "additionalProperties": false,
+      "properties": {
+        "kind":       { "type": "string", "enum": ["domain", "hypothesis", "environment", "statistical"] },
+        "statement":  { "type": "string" },
+        "required_by":{ "type": ["string", "null"] },
+        "discharged": { "type": "boolean", "default": false }
+      }
+    },
+    "Obligation": {
+      "type": "object",
+      "required": ["obligation_id", "kind", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "obligation_id": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "formal_derivative_check", "formal_theorem", "formal_equivalence",
+            "numeric_property", "reproduction", "benchmark_correctness",
+            "benchmark_performance", "statistical_claim", "counterexample_search"
+          ]
+        },
+        "checker":        { "type": ["string", "null"] },
+        "status":         { "type": "string", "enum": ["pending", "passed", "failed", "skipped", "error"] },
+        "artifact":       { "type": ["string", "null"] }
+      }
+    },
+    "CheckerResult": {
+      "type": "object",
+      "required": ["checker", "result"],
+      "additionalProperties": false,
+      "properties": {
+        "checker":          { "type": "string" },
+        "checker_version":  { "type": ["string", "null"] },
+        "result":           { "type": "string", "enum": ["passed", "failed", "error", "timeout", "supported", "refuted", "unknown"] },
+        "formal_verified":  { "type": "boolean", "default": false },
+        "method":           { "type": ["string", "null"], "description": "Verification method used, e.g. differentiation, sat_refutation, gf2_algebraic" },
+        "artifact":         { "type": ["string", "null"] },
+        "elapsed_ms":       { "type": ["number", "null"] },
+        "notes":            { "type": ["string", "null"] }
+      }
+    }
+  }
+}
