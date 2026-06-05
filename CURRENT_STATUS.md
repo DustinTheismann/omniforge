@@ -138,7 +138,8 @@ Canonical per-file counts (enforced by `tests/test_theorem_count.py`):
 | `RischAutoDischarge.lean` | 8 |
 | `PartialFractionHasDerivAt.lean` | 2 |
 | `Gf2Identity.lean` | 2 |
-| **Total** | **31** |
+| `TseitinC5.lean` | 2 |
+| **Total** | **33** |
 
 If this number changes, `tests/test_theorem_count.py`, `README.md`, and
 `docs/PROOFFORGE_OMEGA_ARCHITECTURE.md` must all be updated together. The test
