@@ -1,6 +1,6 @@
-# ProofForge Ω — Current Status (2026-06-04)
+# ProofForge Ω — Current Status (2026-06-05)
 
-Branch: `claude/fracas-lean-transpiler-tqPif` · Head: `423e53a` · Tests: 970 passed, 1 skipped
+PR #2 merged to `main`. Follow-up branch: `claude/clean-up-2K4SZ` · Tests: 970 passed, 1 skipped
 
 This document is the single source of truth for what is **proven**, what is
 **candidate** (code complete but not yet independently reviewed), and what is
@@ -22,7 +22,7 @@ changes; do not let README or the arch doc diverge from it.
 | E6 | SYMBOLICALLY_SUPPORTED | CAS / SAT / SMT checker passed | ✅ FriCAS + SymPy + Maxima + cadical/drat-trim/lrat-trim |
 | E7 | FORMALLY_VERIFIED | ≥1 formal kernel with formal_verified=True | ✅ **Demonstrated** — cake_lpr (HOL4) for SAT lane; Lean 4 for integration lane |
 | E8 | CROSS_VERIFIED | ≥2 independent formal kernel families, each formal_verified=True | ✅ **Demonstrated** — Lean 4 + Coq (bronstein_003, bronstein_004) |
-| E9 | MULTI_METHOD | ≥2 formal families AND ≥2 distinct formal methods | ✅ **Demonstrated** — gf2_algebraic (Lean 4) + sat_refutation (cake_lpr) |
+| E9 | MULTI_METHOD | ≥2 formal families AND ≥2 distinct formal methods | 🟡 **Candidate** — gf2_algebraic (Lean 4) + sat_refutation (cake_lpr). Both anchors now run in CI (lean.yml builds `Gf2Identity`; ci.yml runs cake_lpr on `gf2_tautology.cnf`). Flips to Demonstrated on the first green run. |
 | E10 | ADVERSARIALLY_HARDENED | falsifier ran and found no counterexample; no CHECKER_DISAGREEMENT flag | ⬜ **Not implemented** — falsifier obligation kind exists but no falsifier tool wired |
 | E11 | FIELD_VALIDATED | reserved for external reproduction/publication | ⬜ **Not implemented** |
 | EX | REFUTED | formal refutation or counterexample found | ✅ Gate coded; EX_REFUTED overrides all other levels |
@@ -65,11 +65,11 @@ cake_lpr SHA pin: `a4323b203cc9ecd584ba7da9e3fff08135a09d5f` (verified via
 | Item | Status | Notes |
 |------|--------|-------|
 | Formula | `(a∧b)∨(a∧¬b)↔a` | Boolean tautology |
-| Lean 4 proof | ✅ `fricas_bridge/Gf2Identity.lean` | `gf2_and_or_identity` via `ring` over `ZMod 2` |
-| SAT refutation | ✅ `benches/multimethod/gf2_tautology.cnf` | 5 variables, 11 clauses, UNSAT |
+| Lean 4 proof | ✅ `fricas_bridge/Gf2Identity.lean` | `gf2_and_or_identity` via `ring` over `ZMod 2`; now a `lean_lib` root, kernel-checked + sorry/axiom-guarded every CI run (lean.yml) |
+| SAT refutation | ✅ `benches/multimethod/gf2_tautology.cnf` | 5 variables, 11 clauses, UNSAT; cake_lpr re-checks it in CI via `make gf2` (ci.yml) |
 | Cross-translation validator | ✅ `protocols/cross_method_claim.py` | Exhaustive 2^n check confirms CNF encodes same formula as GF(2) identity fn |
 | Formal methods | `gf2_algebraic` (lean4) + `sat_refutation` (cake_lpr) | 2 distinct methods |
-| Evidence class | **E9_MULTI_METHOD** | |
+| Evidence class | **E9_MULTI_METHOD** (🟡 Candidate until first green CI run) | Both anchors are now executed in CI, not merely asserted in the claim JSON |
 | Canonical example | `protocols/claim_protocol/examples/multimethod_000001.json` | |
 
 ---
@@ -111,12 +111,13 @@ breaks CI if only some are updated.
 | PR | Branch | Status | Scope |
 |----|--------|--------|-------|
 | PR #1 | `score-20` | Open, blocked | Two-checker UNSAT (DRAT+LRAT only); no cake_lpr |
-| PR #2 | `claude/fracas-lean-transpiler-tqPif` | Open, CI green (35/35) | Full ProofForge Ω protocol spine; three-checker SAT; integration lane; E7/E8/E9 demonstrated |
+| PR #2 | `claude/fracas-lean-transpiler-tqPif` | ✅ Merged to `main` | Full ProofForge Ω protocol spine; three-checker SAT; integration lane; E7/E8 CI-backed. E9 anchors shipped but not CI-executed — fixed in this follow-up. |
+| follow-up | `claude/clean-up-2K4SZ` | In progress | Wires the E9 anchors into CI: `Gf2Identity` lean_lib + sorry/axiom guard; cake_lpr re-checks `gf2_tautology.cnf`; E9 row held at Candidate until green. |
 
 **SAT overlap decision**: PR #2 supersedes PR #1. PR #2's SAT lane adds cake_lpr
 (HOL4-verified formal gate) on top of DRAT+LRAT and is strictly richer than
-PR #1's two-checker version. PR #1 should be **closed as superseded** once PR #2
-merges, or closed proactively now to avoid confusion.
+PR #1's two-checker version. PR #1 should be **closed as superseded** now that
+PR #2 has merged.
 
 ---
 
@@ -135,7 +136,8 @@ merges, or closed proactively now to avoid confusion.
 
 ## What Is Frozen (Feature Freeze)
 
-PR #2 is in feature freeze. No new capability additions until it merges.
+PR #2 has merged; the freeze is lifted. This follow-up adds no new capability —
+it only wires the already-shipped E9 anchors into CI so the grade is backed.
 
 Future lanes and extensions belong in separate follow-up PRs:
 - **PR #3**: SAT lane E8 (second formal LRAT checker)

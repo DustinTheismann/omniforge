@@ -20,6 +20,9 @@ through CaDiCaL → drat-trim → lrat-trim → cake_lpr.
 Verified by: leanprover/lean4 (lake build / lean.yml)
 -/
 
+import Mathlib.Data.ZMod.Basic   -- ZMod 2, the GF(2) carrier
+import Mathlib.Tactic            -- `ring` over commutative rings
+
 -- ── GF(2) polynomial identity ────────────────────────────────────────────────
 
 /-- The Boolean tautology as a ZMod 2 ring identity.
