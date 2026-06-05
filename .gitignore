@@ -3,7 +3,12 @@ __pycache__/
 *.egg-info/
 artifacts/run_*/
 artifacts/manifest.json
+artifacts/verify-cnf/
 fricas_bridge/output/
+
+# SAT toolchain — built from source by scripts/tools/install_sat_toolchain.sh
+tools/bin/
+tools/src/
 
 # Coq build artifacts
 *.vo

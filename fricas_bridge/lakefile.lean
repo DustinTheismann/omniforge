@@ -34,3 +34,11 @@ lean_lib PartialFractionHasDerivAt where
     conditions required by HasDerivAt (via Real.log_mul). -/
 lean_lib CasAdjudication where
   roots := #[`CasAdjudication]
+
+/-- E9_MULTI_METHOD — the GF(2) side of the cross-method certificate.
+    gf2_and_or_identity closes a * b + a * (1 - b) = a over ZMod 2 by `ring`;
+    bool_and_or_identity verifies the same tautology by Boolean enumeration.
+    Wiring this as a root sends the proof to the Lean kernel on every CI run
+    (lean.yml), so the E9 Lean anchor is reproduced rather than asserted. -/
+lean_lib Gf2Identity where
+  roots := #[`Gf2Identity]

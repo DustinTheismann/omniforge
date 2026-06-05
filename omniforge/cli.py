@@ -32,6 +32,43 @@ def cmd_validate_contracts(_: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_verify_cnf(args: argparse.Namespace) -> int:
+    """Run the three-checker UNSAT pipeline (cadical → drat-trim → lrat-trim →
+    cake_lpr) on a CNF and fail closed unless every gate verifies UNSAT.
+
+    This is what reproduces the E9 SAT anchor in CI: cake_lpr (HOL4-verified)
+    actually re-checks the gf2 tautology's refutation, rather than the claim
+    JSON merely asserting formal_verified=True.
+    """
+    from omniforge.lanes.sat_lane import run_sat_two_checker
+
+    root = Path.cwd()
+    res = run_sat_two_checker(
+        root=root,
+        cnf_path=Path(args.cnf),
+        seed=args.seed,
+        wall_seconds=args.wall_seconds,
+        out_dir=Path(args.out_dir),
+    )
+    print(f"result={res.result}")
+    for chk in (res.check_drat, res.check_lrat, res.check_cake_lpr):
+        if chk is not None:
+            print(f"  {chk.checker}: ok={chk.ok} returncode={chk.returncode}")
+
+    if not args.expect_unsat:
+        return 0
+
+    all_ok = res.result == "UNSAT" and all(
+        c is not None and c.ok
+        for c in (res.check_drat, res.check_lrat, res.check_cake_lpr)
+    )
+    if all_ok:
+        print("OK: UNSAT verified by drat-trim + lrat-trim + cake_lpr")
+        return 0
+    print("FAIL: expected UNSAT verified by all three checkers")
+    return 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="omniforge", description="OmniForge seed CLI")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -45,6 +82,21 @@ def build_parser() -> argparse.ArgumentParser:
 
     v = sub.add_parser("validate-contracts", help="Validate JSON schemas and sample instances")
     v.set_defaults(func=cmd_validate_contracts)
+
+    c = sub.add_parser(
+        "verify-cnf",
+        help="Run cadical → drat-trim → lrat-trim → cake_lpr on a CNF (fail-closed UNSAT check)",
+    )
+    c.add_argument("--cnf", required=True, help="Path to the DIMACS CNF file")
+    c.add_argument("--out-dir", default="artifacts/verify-cnf", help="Output directory for proofs")
+    c.add_argument("--seed", type=int, default=0)
+    c.add_argument("--wall-seconds", type=int, default=60)
+    c.add_argument(
+        "--expect-unsat",
+        action="store_true",
+        help="Exit non-zero unless UNSAT is verified by all three checkers",
+    )
+    c.set_defaults(func=cmd_verify_cnf)
 
     return p
 
