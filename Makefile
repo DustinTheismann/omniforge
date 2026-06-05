@@ -18,6 +18,11 @@ validate-contracts:
 gf2:
 	$(PY) -m omniforge.cli verify-cnf --cnf benches/multimethod/gf2_tautology.cnf --expect-unsat
 
+# E9 (non-toy) SAT anchor: re-check the Tseitin C5 refutation with cake_lpr.
+.PHONY: tseitin
+tseitin:
+	$(PY) -m omniforge.cli verify-cnf --cnf benches/multimethod/tseitin_c5.cnf --expect-unsat
+
 .PHONY: validate-protocols
 validate-protocols:
 	$(PY) -m pytest tests/test_claim_protocol.py tests/test_runpack_protocol.py tests/test_evidence_grader.py -v --tb=short

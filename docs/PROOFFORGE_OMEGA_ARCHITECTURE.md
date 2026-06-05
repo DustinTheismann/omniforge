@@ -254,7 +254,7 @@ to E6 but does not satisfy the E8 gate. Example paths to E8:
 | Phase | Deliverable | Status |
 |---|---|---|
 | 0 | Protocol spine (claim, runpack, evidence, obligation, transmutation) | **Done** |
-| 1 | Symbolic integration wedge (FriCAS → Lean 4) | **Done** — 31 kernel-verified theorems/lemmas (0 sorry, 0 axiom; guarded by tests/test_theorem_count.py) |
+| 1 | Symbolic integration wedge (FriCAS → Lean 4) | **Done** — 33 kernel-verified theorems/lemmas (0 sorry, 0 axiom; guarded by tests/test_theorem_count.py) |
 | 2 | SymPy/Maxima adapters + cross-CAS disagreement detector | **Done** — live hunt over 191 integrands; 0 net genuine CAS errors |
 | 3 | SAT lane with HOL4-verified formal trust anchor (cake_lpr) | **Done** — three-checker pipeline, E7_FORMALLY_VERIFIED unsat_certificate |
 | 4 | Corpus-scale runner (Rubi/DLMF/Bronstein) | Planned |

@@ -42,3 +42,10 @@ lean_lib CasAdjudication where
     (lean.yml), so the E9 Lean anchor is reproduced rather than asserted. -/
 lean_lib Gf2Identity where
   roots := #[`Gf2Identity]
+
+/-- E9_MULTI_METHOD (non-toy) — the GF(2) linear-algebra side of the Tseitin C₅
+    cross-method certificate. tseitin_c5_unsat sums the five parity constraints
+    over ZMod 2 (each edge cancels in char 2) to derive 0 = 1; the SAT lane
+    refutes the same CNF with cake_lpr. Built + kernel-checked on every CI run. -/
+lean_lib TseitinC5 where
+  roots := #[`TseitinC5]

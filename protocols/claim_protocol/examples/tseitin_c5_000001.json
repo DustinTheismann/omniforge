@@ -1,0 +1,103 @@
+{
+  "artifacts": {
+    "lean_file": "fricas_bridge/TseitinC5.lean",
+    "runpack": "runpacks/pf.multimethod.tseitin_c5.000001/manifest.json",
+    "source_hash": "62705cfd2009d4547a828e5fe63c31b21a23d80141997d6dff079665ae54e01f"
+  },
+  "assumptions": [],
+  "checker_results": [
+    {
+      "artifact": "fricas_bridge/TseitinC5.lean",
+      "checker": "lean4",
+      "checker_version": "leanprover/lean4:v4.30.0 + mathlib:v4.30.0",
+      "formal_verified": true,
+      "method": "gf2_linear_algebra",
+      "notes": "tseitin_c5_unsat: linear_combination sums the five parity constraints (universal ring residual); char 2 collapses 2*Sum to 0, giving 0=1. Kernel acceptance via CI (lean.yml).",
+      "result": "passed"
+    },
+    {
+      "artifact": "tseitin_c5.cnf",
+      "checker": "cake_lpr",
+      "checker_version": "tanyongkiam/cake_lpr@a4323b2 (HOL4-verified CakeML binary)",
+      "formal_verified": true,
+      "method": "sat_refutation",
+      "notes": "cake_lpr accepts the LRAT proof for the UNSAT Tseitin C5 CNF. Acceptance is a formal soundness guarantee (LRAT checker proven correct in HOL4).",
+      "result": "passed"
+    }
+  ],
+  "claim_id": "pf.multimethod.tseitin_c5.000001",
+  "claim_type": "algebraic_identity",
+  "evidence_class": "E9_MULTI_METHOD",
+  "flags": [],
+  "formal_targets": [
+    {
+      "checker_version": "leanprover/lean4:v4.30.0 + mathlib:v4.30.0",
+      "statement_file": "fricas_bridge/TseitinC5.lean",
+      "statement_text": "tseitin_c5_unsat: the C5 parity hypotheses imply False over ZMod 2",
+      "status": "proved",
+      "system": "Lean4"
+    },
+    {
+      "checker_version": "cake_lpr@a4323b2 (HOL4)",
+      "statement_file": "benches/multimethod/tseitin_c5.cnf",
+      "statement_text": "CNF encoding of the Tseitin C5 parity system is UNSAT",
+      "status": "proved",
+      "system": "other"
+    }
+  ],
+  "inputs": {
+    "cnf_file": "tseitin_c5.cnf",
+    "cnf_sha256": "62705cfd2009d4547a828e5fe63c31b21a23d80141997d6dff079665ae54e01f",
+    "formula": "Tseitin C5 odd-charge parity system over GF(2)"
+  },
+  "metadata": {
+    "created_at": "2026-06-05T00:00:00Z",
+    "generated_by": "protocols/cross_method_claim.py (Tseitin C5 instance)",
+    "notes": "Non-toy E9_MULTI_METHOD: gf2_linear_algebra (Lean4 over ZMod 2) + sat_refutation (cake_lpr/HOL4) on the Tseitin C5 odd-charge parity system. Lean sha256=88135af30551e90a..., CNF sha256=62705cfd2009d454.... Both encodings validated against the same 2^5 truth table.",
+    "proofforge_version": "0.4.0",
+    "tags": [
+      "multimethod",
+      "E9",
+      "tseitin",
+      "gf2_linear_algebra",
+      "sat_refutation",
+      "cross-method"
+    ]
+  },
+  "natural_language": "The odd-charge Tseitin parity system on the 5-cycle C5 (e5+e1=1, e1+e2=0, e2+e3=0, e3+e4=0, e4+e5=0 over GF(2)) is unsatisfiable, established by two genuinely different formal methods. (1) gf2_linear_algebra (Lean 4): summing the five vertex constraints over ZMod 2, every edge variable occurs in exactly two of them and cancels in characteristic 2, so 0 = sum(charges) = 1 (tseitin_c5_unsat, via linear_combination whose residual is a universal ring identity). (2) sat_refutation (cake_lpr/HOL4): the same constraints are encoded as CNF, CaDiCaL produces an UNSAT proof, and cake_lpr accepts the LRAT certificate. Tseitin formulas are the canonical separator of these methods (exponential for resolution on expanders, linear for the GF(2) argument); the cycle instance keeps the SAT proof polynomial so both anchors are cheap. Two formal families (lean4, cake_lpr) and two distinct methods (gf2_linear_algebra, sat_refutation) -> E9.",
+  "obligations": [
+    {
+      "artifact": "fricas_bridge/TseitinC5.lean",
+      "checker": "lean4",
+      "kind": "formal_theorem",
+      "obligation_id": "pf.multimethod.tseitin_c5.000001.lean_gf2",
+      "status": "passed"
+    },
+    {
+      "artifact": "benches/multimethod/tseitin_c5.cnf",
+      "checker": "cake_lpr",
+      "kind": "formal_theorem",
+      "obligation_id": "pf.multimethod.tseitin_c5.000001.sat_refutation",
+      "status": "passed"
+    },
+    {
+      "artifact": "fricas_bridge/TseitinC5.lean",
+      "checker": "lean4",
+      "kind": "formal_equivalence",
+      "obligation_id": "pf.multimethod.tseitin_c5.000001.cross_translation",
+      "status": "passed"
+    }
+  ],
+  "outputs": {
+    "lean_proof": "tseitin_c5_unsat",
+    "lrat_proof": "proofs/proof.lrat",
+    "verdict": "UNSAT"
+  },
+  "source": {
+    "kind": "benchmark",
+    "name": "multimethod",
+    "source_hash": "62705cfd2009d4547a828e5fe63c31b21a23d80141997d6dff079665ae54e01f",
+    "version": "0.4.0"
+  },
+  "title": "Cross-method certificate \u2014 Tseitin C5 odd-charge parity is unsatisfiable"
+}

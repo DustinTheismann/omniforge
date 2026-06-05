@@ -66,7 +66,8 @@ END_MARKER = "<!-- END GENERATED: evidence grades -->"
 CLAIMS: list[tuple[str, str]] = [
     ("protocols/claim_protocol/examples/unsat_000001.json",        "SAT lane"),
     ("protocols/claim_protocol/examples/cross_bronstein_003.json", "Integration (cross-prover)"),
-    ("protocols/claim_protocol/examples/multimethod_000001.json",  "Cross-method"),
+    ("protocols/claim_protocol/examples/multimethod_000001.json",  "Cross-method (gf2 toy)"),
+    ("protocols/claim_protocol/examples/tseitin_c5_000001.json",    "Cross-method (Tseitin C5)"),
 ]
 
 # cake_lpr anchors are not bound to a committed file by the claim alone; map the
@@ -75,6 +76,7 @@ CLAIMS: list[tuple[str, str]] = [
 # wired (conservative): a new cake_lpr claim is never auto-blessed.
 _CAKE_PIPELINES: dict[str, tuple[str, str | None]] = {
     "gf2_tautology.cnf":      ("gf2",  "benches/multimethod/gf2_tautology.cnf"),
+    "tseitin_c5.cnf":         ("tseitin", "benches/multimethod/tseitin_c5.cnf"),
     "unsat_contradiction.cnf": ("demo", None),  # demo runs the three-checker pipeline
 }
 

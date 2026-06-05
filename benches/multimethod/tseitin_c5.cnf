@@ -1,0 +1,17 @@
+c Tseitin contradiction on the 5-cycle C5 (edges e1..e5), odd total charge.
+c Vertex parity constraints (XOR), DIMACS CNF; the formula is UNSAT.
+c   v1: e5 XOR e1 = 1   v2: e1 XOR e2 = 0   v3: e2 XOR e3 = 0
+c   v4: e3 XOR e4 = 0   v5: e4 XOR e5 = 0
+c Summing all five over GF(2): each edge occurs twice -> 0 = sum(charges) = 1.
+c Verified UNSAT by: CaDiCaL -> drat-trim -> lrat-trim -> cake_lpr (HOL4-verified).
+p cnf 5 10
+5 1 0
+-5 -1 0
+-1 2 0
+1 -2 0
+-2 3 0
+2 -3 0
+-3 4 0
+3 -4 0
+-4 5 0
+4 -5 0

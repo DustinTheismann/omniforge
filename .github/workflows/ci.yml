@@ -34,6 +34,9 @@ jobs:
       - name: E9 SAT anchor (cake_lpr re-checks gf2 tautology refutation)
         run: make gf2
 
+      - name: E9 non-toy SAT anchor (cake_lpr re-checks Tseitin C5 refutation)
+        run: make tseitin
+
       - name: Upload demo artifact
         if: always()
         uses: actions/upload-artifact@v4
