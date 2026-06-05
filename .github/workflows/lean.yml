@@ -60,6 +60,7 @@ jobs:
             fricas_bridge/FriCASTranslator.lean
             fricas_bridge/FriCASParser.lean
             fricas_bridge/Gf2Identity.lean
+            fricas_bridge/TseitinC5.lean
           )
           if grep -nE '\bsorry\b|\badmit\b|^axiom ' "${VERIFIED_ROOTS[@]}"; then
             echo "::error::sorry/admit/axiom found in a verified library root — proof is unsound"

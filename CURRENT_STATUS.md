@@ -47,7 +47,8 @@ executed-this-run.
 |-------|------|--------|--------|-----------|--------|
 | `pf.unsat.000001` | SAT lane | E7 | E7 | E7 | ✅ Demonstrated |
 | `pf.cross.bronstein_003` | Integration (cross-prover) | E8 | E8 | E8 | ✅ Demonstrated |
-| `pf.multimethod.gf2_and_or.000001` | Cross-method | E9 | E9 | E9 | ✅ Demonstrated |
+| `pf.multimethod.gf2_and_or.000001` | Cross-method (gf2 toy) | E9 | E9 | E9 | ✅ Demonstrated |
+| `pf.multimethod.tseitin_c5.000001` | Cross-method (Tseitin C5) | E9 | E9 | E9 | ✅ Demonstrated |
 <!-- END GENERATED: evidence grades -->
 
 ---
@@ -76,7 +77,7 @@ cake_lpr SHA pin: `a4323b203cc9ecd584ba7da9e3fff08135a09d5f` (verified via
 |------|--------|-------|
 | CAS producer | ✅ FriCAS (Risch algorithm) | Untrusted producer; residual derivative check follows |
 | Residual check | ✅ SymPy + Maxima (two-CAS scan, 191 integrands) | 0 net genuine CAS errors after review |
-| Lean 4 proofs | ✅ 31 theorem/lemma decls, 0 sorry, 0 axiom | Guarded by `tests/test_theorem_count.py` |
+| Lean 4 proofs | ✅ 33 theorem/lemma decls, 0 sorry, 0 axiom | Guarded by `tests/test_theorem_count.py` |
 | Coq proofs | ✅ RischCoqDischarge.v (cross-prover) | bronstein_003, bronstein_004 |
 | Evidence class (standard) | **E7_FORMALLY_VERIFIED** | Lean 4 kernel alone |
 | Evidence class (cross-prover) | **E8_CROSS_VERIFIED** | Lean 4 + Coq for bronstein_003, bronstein_004 |
@@ -94,6 +95,22 @@ cake_lpr SHA pin: `a4323b203cc9ecd584ba7da9e3fff08135a09d5f` (verified via
 | Formal methods | `gf2_algebraic` (lean4) + `sat_refutation` (cake_lpr) | 2 distinct methods |
 | Evidence class | **E9_MULTI_METHOD** | Both anchors are executed in CI (green on `686055e`), not merely asserted in the claim JSON |
 | Canonical example | `protocols/claim_protocol/examples/multimethod_000001.json` | |
+
+#### Non-toy E9 — Tseitin C₅ (substantive instance)
+
+Upgrades the E9 demonstration off the two-variable toy onto the canonical
+example that *separates* algebra from resolution. The two methods are genuinely
+orthogonal here, not nominally distinct.
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Formula | Tseitin odd-charge parity system on the 5-cycle C₅ | `e₅+e₁=1, e₁+e₂=0, e₂+e₃=0, e₃+e₄=0, e₄+e₅=0` over GF(2); UNSAT |
+| Lean 4 proof | ✅ `fricas_bridge/TseitinC5.lean` | `tseitin_c5_unsat` via `linear_combination` (universal ring residual) + char-2 collapse → `0=1`; lean_lib root, kernel-checked + guarded (lean.yml) |
+| SAT refutation | ✅ `benches/multimethod/tseitin_c5.cnf` | 5 vars, 10 clauses, UNSAT; cake_lpr re-checks it in CI via `make tseitin` (ci.yml) |
+| Formal methods | `gf2_linear_algebra` (lean4) + `sat_refutation` (cake_lpr) | 2 genuinely-different methods (Gaussian elimination over 𝔽₂ vs propositional resolution) |
+| Why substantive | Tseitin formulas separate the two methods exponentially on expanders | cycle = bounded treewidth ⇒ SAT proof stays polynomial; the *methods* remain the orthogonal pair |
+| Evidence class | **E9_MULTI_METHOD** | Grade is generated as `min(grader, wiring)` and CI-guarded (see generated block above) |
+| Canonical example | `protocols/claim_protocol/examples/tseitin_c5_000001.json` | |
 
 ---
 
