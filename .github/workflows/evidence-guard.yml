@@ -1,0 +1,44 @@
+name: Evidence guard
+
+# Structural integrity guards, run UNCONDITIONALLY on every push and PR.
+#
+# Deliberately no `paths:` filter. A path-filtered guard silently does not run
+# when the triggering change is outside its globs — which is how the existing
+# theorem-count guard (tests/test_theorem_count.py) was never actually executed
+# in CI. These guards are cheap (pure Python, no kernels) so they run every time:
+# the whole point is that the check cannot be skipped.
+#
+# What this enforces:
+#   - The CURRENT_STATUS.md evidence-grade block equals min(grader, wiring),
+#     so a "Demonstrated" cell cannot be hand-typed ahead of its CI wiring.
+#   - The kernel-verified theorem count and the sorry/axiom-free claim hold.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  guard:
+    name: Structural guards (evidence grade + theorem count)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package + pytest
+        run: pip install -e . && pip install pytest
+
+      - name: Evidence-grade block is min(grader, wiring) and not stale
+        run: python scripts/generate_evidence_grades.py --check
+
+      - name: Run structural guard tests
+        run: |
+          python -m pytest \
+            tests/test_evidence_grades_generated.py \
+            tests/test_theorem_count.py \
+            tests/test_cross_method_claim.py \
+            -v --tb=short
