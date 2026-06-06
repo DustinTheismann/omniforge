@@ -23,6 +23,11 @@ gf2:
 tseitin:
 	$(PY) -m omniforge.cli verify-cnf --cnf benches/multimethod/tseitin_c5.cnf --expect-unsat
 
+# Typeset the paper (needs pandoc + a LaTeX toolchain; CI builds it in paper.yml).
+.PHONY: paper
+paper:
+	bash paper/build_pdf.sh
+
 .PHONY: validate-protocols
 validate-protocols:
 	$(PY) -m pytest tests/test_claim_protocol.py tests/test_runpack_protocol.py tests/test_evidence_grader.py -v --tb=short
