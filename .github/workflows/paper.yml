@@ -1,0 +1,45 @@
+name: Paper PDF
+
+# Typesets paper/proofforge-omega.md to PDF in CI — the build the local dev
+# environment can't run (no LaTeX toolchain / restricted network). Buildability
+# is therefore enforced here on every change to the paper, the same way lean.yml
+# enforces the proofs. The build fails closed on a missing glyph, so a "green"
+# PDF has no silently-dropped characters. The PDF and generated .tex are uploaded
+# as artifacts.
+
+on:
+  push:
+    paths:
+      - 'paper/**'
+      - '.github/workflows/paper.yml'
+  pull_request:
+    paths:
+      - 'paper/**'
+      - '.github/workflows/paper.yml'
+
+jobs:
+  build:
+    name: Build paper PDF
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pandoc + LaTeX (pdflatex)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pandoc \
+            texlive-latex-base texlive-latex-recommended texlive-latex-extra \
+            texlive-fonts-recommended lmodern
+
+      - name: Build PDF (fail-closed on missing glyphs)
+        run: bash paper/build_pdf.sh
+
+      - name: Upload PDF + LaTeX
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proofforge-omega-paper
+          path: |
+            paper/proofforge-omega.pdf
+            paper/proofforge-omega.tex
