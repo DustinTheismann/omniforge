@@ -8,9 +8,10 @@ Artifact: `github.com/DustinTheismann/omniforge` (v0.4.0), commit on `main` at t
 > tools/demonstrator track (e.g. CICM or an ITP tool paper) or arXiv. Every
 > empirical claim below is cross-referenced to a file or CI workflow in the
 > artifact; numbers are those enforced by the repository's own guards. The
-> bibliography names the relevant prior art but its exact venue/year fields are
-> marked *to be finalized* where not independently re-verified — they must be
-> checked before submission, not taken from this draft.
+> bibliography (Appendix B) has been **verified against primary sources** (web
+> check, June 2026): author lists, titles, venues, years, pages, and DOIs are
+> as listed. What remains is editorial — final reference *formatting* in the
+> chosen venue's style, and the author/affiliation line.
 
 ---
 
@@ -92,37 +93,34 @@ is validated at scale.
 
 ## 2. Background and related work
 
-*(Bibliographic fields marked "tbf" must be finalized before submission.)*
+(Numbers in brackets key to Appendix B.)
 
 **LCF-style kernels and the skeptic approach.** Verifying CAS output against a
 proof assistant is a well-trodden idea. Harrison and Théry's "skeptic's
 approach" combined HOL with Maple, having the untrusted CAS produce a result the
-trusted kernel re-derives (J. Automated Reasoning, tbf). Our integration lane is
-an instance of exactly this pattern; we claim no novelty for the technique
-itself, only for embedding it in a graded, multi-lane foundry.
+trusted kernel re-derives [1]. Our integration lane is an instance of exactly
+this pattern; we claim no novelty for the technique itself, only for embedding it
+in a graded, multi-lane foundry.
 
-**CAS ↔ prover bridges.** OpenMath and related interchange efforts (tbf)
-standardize moving mathematical objects between systems. Our FriCAS→Lean
-translation is a narrow, special-purpose instance, not a general bridge.
+**CAS ↔ prover bridges.** OpenMath [2] standardizes moving mathematical objects
+between systems. Our FriCAS→Lean translation is a narrow, special-purpose
+instance, not a general bridge.
 
 **Formally verified proof checking.** The trust anchor of our SAT lane,
-`cake_lpr`, is a CakeML program whose LRAT-checking logic is proven correct in
-HOL4 (Tan, Heule, Myreen, tbf). The unverified checkers `drat-trim` (Wetzler,
-Heule, Hunt, tbf) and `lrat-trim` provide corroboration. The DRAT/LRAT proof
-formats and the discipline of solver-emits-proof / checker-verifies-proof are
-standard in the SAT competition ecosystem (tbf). We use these as-is.
+`cake_lpr`, is a CakeML [3] program whose LRAT-checking logic is proven correct
+in HOL4 [4]. The unverified checkers `drat-trim` [5] and `lrat-trim` provide
+corroboration; the LRAT format itself was introduced for exactly this
+solver-emits-proof / checker-verifies-proof discipline [6]. We use these as-is.
 
-**Certificate-checked optimization.** VIPR (Cheung, Gleixner, Steffy, tbf)
-verifies MILP results via certificates; we cite it as the model our (not yet
-built) MILP lane would follow, and as evidence the trust pattern generalizes
-beyond our two lanes.
+**Certificate-checked optimization.** VIPR [7] verifies MILP results via
+certificates; we cite it as the model our (not yet built) MILP lane would
+follow, and as evidence the trust pattern generalizes beyond our two lanes.
 
 **Proof complexity.** Our E9 demonstration rests on a classical fact: Tseitin
-formulas separate algebraic (Gaussian elimination over GF(2)) from resolution
-reasoning — exponentially so on expander graphs (Tseitin; Urquhart; Ben-Sasson–
-Wigderson, tbf). This is *why* the two methods we combine are genuinely
-different rather than notational variants; we exploit a bounded-treewidth
-instance to keep both proofs cheap.
+formulas [8] separate algebraic (Gaussian elimination over GF(2)) from
+resolution reasoning — exponentially so on expander graphs [9, 10]. This is
+*why* the two methods we combine are genuinely different rather than notational
+variants; we exploit a bounded-treewidth instance to keep both proofs cheap.
 
 **What is new here.** Not the checkers, not cross-prover verification, not the
 skeptic approach. New is the *unified evidence-graded foundry* that treats these
@@ -193,7 +191,7 @@ referent rather than "whatever was on `PATH`."
 
 ### 5.1 SAT lane — three-checker UNSAT, HOL4-verified anchor
 
-Pipeline: **CaDiCaL** (solver; untrusted) → **drat-trim** (DRAT check) →
+Pipeline: **CaDiCaL** [14] (solver; untrusted) → **drat-trim** (DRAT check) →
 **lrat-trim** (LRAT check) → **`cake_lpr`** (formal gate). CaDiCaL emits a DRAT
 proof; the two unverified checkers corroborate; `cake_lpr` — whose LRAT-checking
 logic is proven correct in HOL4 — accepts the LRAT certificate (`s VERIFIED
@@ -208,11 +206,11 @@ correctly refuses E8 until we do (a documented gap, §9).
 Pipeline: **FriCAS** runs the Risch algorithm (untrusted producer); a **SymPy +
 Maxima** derivative residual check is used as *triage* (explicitly not proof —
 it can be fooled by branch cuts and simplification limits); promising cases are
-discharged by a **Lean 4** kernel proof against Mathlib. The library contains 33
+discharged by a **Lean 4** [11] kernel proof against Mathlib [12]. The library contains 33
 theorems/lemmas with **0 `sorry`, 0 `axiom`**, a count enforced by CI (§6).
 
 For cross-prover verification, the same derivative identity is proved
-independently in **Coq + Coquelicot**. Where both kernels prove the *same*
+independently in **Coq + Coquelicot** [13]. Where both kernels prove the *same*
 statement on the *same* domain (caveat-free), the claim reaches **E8** —
 demonstrated for `bronstein_003` and `bronstein_004`. Branch-cut-divergent cases
 are *deliberately held at E7*: Lean's lemma assumes `x ≠ 0` while Coq's assumes
@@ -434,11 +432,53 @@ refusing to record it as verified until the verification has actually run.
   verifies the headline grade block.
 - **Pins**: `tools/toolchain.lock.json` (git-SHA-pinned, `git ls-remote`-verified).
 
-## Appendix B — Bibliography (to be finalized)
+## Appendix B — Bibliography
 
-The following prior work is cited in §2; **venue/year fields must be verified
-before submission** and are intentionally omitted here rather than guessed:
-Harrison & Théry (skeptic's approach, HOL+Maple); OpenMath; Tan, Heule & Myreen
-(`cake_lpr`, HOL4-verified LRAT checking); Wetzler, Heule & Hunt (DRAT-trim);
-Cruz-Filipe et al. (LRAT); Cheung, Gleixner & Steffy (VIPR); Tseitin; Urquhart;
-Ben-Sasson & Wigderson (resolution lower bounds / proof-complexity separation).
+Verified against primary sources (web check, June 2026). Entries give
+authors, title, venue, year, pages, and DOI/identifier where one exists.
+Final *formatting* should follow the chosen venue's style (e.g. BibTeX/LNCS);
+the bibliographic facts below are the checked content.
+
+1. J. Harrison and L. Théry. *A Skeptic's Approach to Combining HOL and Maple.*
+   Journal of Automated Reasoning 21(3):279–294, 1998. DOI 10.1023/A:1006023127567.
+2. S. Buswell, O. Caprotti, D. P. Carlisle, M. C. Dewar, M. Gaëtano, and
+   M. Kohlhase. *The OpenMath Standard, Version 2.0.* The OpenMath Society, 2004.
+   https://openmath.org/standard/
+3. R. Kumar, M. O. Myreen, M. Norrish, and S. Owens. *CakeML: A Verified
+   Implementation of ML.* POPL 2014, pp. 179–191. DOI 10.1145/2535838.2535841.
+4. Y. K. Tan, M. J. H. Heule, and M. O. Myreen. *cake_lpr: Verified Propagation
+   Redundancy Checking in CakeML.* TACAS 2021, LNCS 12651, pp. 223–241.
+   DOI 10.1007/978-3-030-72013-1_12.
+5. N. Wetzler, M. J. H. Heule, and W. A. Hunt Jr. *DRAT-trim: Efficient Checking
+   and Trimming Using Expressive Clausal Proofs.* SAT 2014, LNCS 8561,
+   pp. 422–429. DOI 10.1007/978-3-319-09284-3_31.
+6. L. Cruz-Filipe, M. J. H. Heule, W. A. Hunt Jr., M. Kaufmann, and
+   P. Schneider-Kamp. *Efficient Certified RAT Verification.* CADE 2017,
+   LNCS 10395, pp. 220–236. DOI 10.1007/978-3-319-63046-5_14. (arXiv:1612.02353)
+7. K. K. H. Cheung, A. Gleixner, and D. E. Steffy. *Verifying Integer Programming
+   Results.* IPCO 2017, LNCS 10328, pp. 148–160. (arXiv:1611.08832)
+8. G. S. Tseitin. *On the complexity of derivation in propositional calculus.*
+   Zapiski Nauchnykh Seminarov LOMI 8 (1968), pp. 234–259 (Russian); English
+   translation in A. O. Slisenko (ed.), *Studies in Constructive Mathematics and
+   Mathematical Logic, Part II*, 1970, pp. 115–125.
+9. A. Urquhart. *Hard examples for resolution.* Journal of the ACM 34(1):209–219,
+   1987. DOI 10.1145/7531.8928.
+10. E. Ben-Sasson and A. Wigderson. *Short Proofs Are Narrow—Resolution Made
+    Simple.* Journal of the ACM 48(2):149–169, 2001 (prelim. STOC 1999).
+    DOI 10.1145/375827.375835.
+11. L. de Moura and S. Ullrich. *The Lean 4 Theorem Prover and Programming
+    Language.* CADE 28, 2021, LNCS 12699, pp. 625–635.
+    DOI 10.1007/978-3-030-79876-5_37.
+12. The mathlib Community. *The Lean Mathematical Library.* CPP 2020,
+    pp. 367–381. DOI 10.1145/3372885.3373824. (arXiv:1910.09336)
+13. S. Boldo, C. Lelay, and G. Melquiond. *Coquelicot: A User-Friendly Library of
+    Real Analysis for Coq.* Mathematics in Computer Science 9(1):41–62, 2015.
+    DOI 10.1007/s11786-014-0181-1.
+14. A. Biere, K. Fazekas, M. Fleury, and M. Heisinger. *CaDiCaL, Kissat,
+    Paracooba, Plingeling and Treengeling Entering the SAT Competition 2020.*
+    Proc. SAT Competition 2020 — Solver and Benchmark Descriptions, pp. 51–53,
+    University of Helsinki, 2020.
+
+*Note.* Entry 7 (VIPR): the IPCO 2017 chapter DOI was not independently
+confirmed in this pass; the arXiv identifier and venue/pages are verified. Add
+the chapter DOI from the proceedings when formatting.
